@@ -5,7 +5,7 @@
 #include <getopt.h>
 #include <string.h>
 
-#define ASCII_SIZE 256
+#include "huff.h"
 
 /*
 * Zadat text nebo možnost zadat znaky a pravděpodobnosti
@@ -24,7 +24,7 @@ Default: binární kódování
 */
 
 char *getInputText() {
-    printf("Input a text:\n");
+    printf("Input a text: ");
 
     int portion_size = 10;
     char *buffer = NULL;
@@ -52,22 +52,6 @@ char *getInputText() {
     return buffer;
 }
 
-void countCharacters(const char *inputText) {
-    int count[ASCII_SIZE] = {0};
-
-    for(int i = 0; inputText[i] != '\0'; i++) {
-        count[(unsigned char)inputText[i]]++;
-    }
-    
-    // Print character counts
-    printf("Character frequencies:\n");
-    for (int i = 0; i < ASCII_SIZE; i++) {
-        if (count[i] > 0) {
-            printf("'%c' : %d\n", i, count[i]);
-        }
-    }
-
-}
 
 // ./main.exe -
 // ./main.exe -
@@ -160,25 +144,23 @@ int main(int argc, char *argv[]) {
     */
     char *inputText = NULL;
     size_t inputTextSize = 0;
+
     if(isSettingText) {
         inputText = getInputText();
          if(inputText) {
             inputTextSize = strlen(inputText);
             printf("Text length: %llu\n", inputTextSize);
-            countCharacters(inputText);
-            /*printf("You entered: %s\n", inputText);
-            printf("inputText[0] %c\n", inputText[0]);
-            printf("inputText[max-2] %c\n", inputText[strlen(inputText)-2]);
-            printf("inputText[max-1] %c\n", inputText[strlen(inputText)-1]);
-            printf("inputText[max] %c\n", inputText[strlen(inputText)]);
-            //printf("Text length: %llu\n", (sizeof(inputText)/sizeof(inputText[0])) );
-            */
+            //count = countCharacters(inputText);
         }
     }
     if(isProbabilities) {
 
         printf("HERE SET PROBABILITIES!");
     }
+
+    //Huffman huff = createHuffman();
+    Huffman* huff;
+    huff = initHuffmanFromText(inputText);
     
 
     printf("END\n");
@@ -197,5 +179,7 @@ int main(int argc, char *argv[]) {
 
     if(inputText) // Uvolnění paměti
         free(inputText);
+    if(huff->count)
+        free(huff->count);
     return EXIT_SUCCESS;
 }
