@@ -5,6 +5,8 @@
 #include <getopt.h>
 #include <string.h>
 
+#define ASCII_SIZE 256
+
 /*
 * Zadat text nebo možnost zadat znaky a pravděpodobnosti
 * Zesortovat znaky od největšího po nejmenší podle pravděpodobností (nebo opačně, záleží na dalším použití)
@@ -46,7 +48,25 @@ char *getInputText() {
         if(temp[temp_len-1] == '\n') //Konec textu => konec cyklu
             break;
     }
+    buffer[size-1] = '\0'; // Odstranění \n
     return buffer;
+}
+
+void countCharacters(const char *inputText) {
+    int count[ASCII_SIZE] = {0};
+
+    for(int i = 0; inputText[i] != '\0'; i++) {
+        count[(unsigned char)inputText[i]]++;
+    }
+    
+    // Print character counts
+    printf("Character frequencies:\n");
+    for (int i = 0; i < ASCII_SIZE; i++) {
+        if (count[i] > 0) {
+            printf("'%c' : %d\n", i, count[i]);
+        }
+    }
+
 }
 
 // ./main.exe -
@@ -130,7 +150,7 @@ int main(int argc, char *argv[]) {
 
     if(importFromFile && isProbabilities) //Pokud budeme importovat ze souboru, tak nebudeme zadávat vlastní pravděpodobnosti... mohlo by být moc náročné
         isProbabilities = false;
-    if(!isProbabilities && !isSettingText && !importFromFile) // POkud neimportujeme ze souboru a ani nezádáváme čistě pravděpodobnosti, tak bude text
+    if(!isProbabilities && !isSettingText && !importFromFile) // Pokud neimportujeme ze souboru a ani nezádáváme čistě pravděpodobnosti, tak bude text
         isSettingText = true;
     if(importFromFile && isSettingText) // Pokud importujeme ze souboru, tak nebudeme zadávat text ručně
         isSettingText = false;
@@ -139,17 +159,21 @@ int main(int argc, char *argv[]) {
         INPUTS
     */
     char *inputText = NULL;
+    size_t inputTextSize = 0;
     if(isSettingText) {
         inputText = getInputText();
          if(inputText) {
-            printf("You entered: %s\n", inputText);
-            printf("Text length: %llu\n", strlen(inputText));
+            inputTextSize = strlen(inputText);
+            printf("Text length: %llu\n", inputTextSize);
+            countCharacters(inputText);
+            /*printf("You entered: %s\n", inputText);
             printf("inputText[0] %c\n", inputText[0]);
             printf("inputText[max-2] %c\n", inputText[strlen(inputText)-2]);
             printf("inputText[max-1] %c\n", inputText[strlen(inputText)-1]);
             printf("inputText[max] %c\n", inputText[strlen(inputText)]);
             //printf("Text length: %llu\n", (sizeof(inputText)/sizeof(inputText[0])) );
-         }
+            */
+        }
     }
     if(isProbabilities) {
 
