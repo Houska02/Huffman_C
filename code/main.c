@@ -161,7 +161,7 @@ int main(int argc, char *argv[]) {
     //Huffman huff = createHuffman();
     Huffman* huff;
     huff = initHuffmanFromText(inputText);
-    
+    huff->process(huff);
 
     printf("END\n");
 
