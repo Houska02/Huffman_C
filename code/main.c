@@ -81,7 +81,6 @@ int main(int argc, char *argv[]) {
     Navíc:
     -p - Budeme zadávat pravděpodobnosti
     -h --huff <values> - Do kolika znaků budeme kódovat (01, 012, abc, ... bude záležet na pořadí v jakém se to tam zadá)
-    //////////NENI: -t --text - Zda budeme zadávat text
     -? - Help
     */
     static struct  option long_options[] = {
@@ -108,7 +107,6 @@ int main(int argc, char *argv[]) {
                     isSettingText = true;
                     printf("Dal jsi -m\n");
                     break;
-
                 case 'h': // Výstupní kódování (znaky)
                     customOutput = true;
                     customOutputValues = optarg;
@@ -118,7 +116,6 @@ int main(int argc, char *argv[]) {
                     printf("Dal jsi -p\n");
                     isProbabilities = true;
                     break;
-
                 case '?':
                     printf("-f <file_name> -> Define a file name.\n");
                     printf("-o <value> -> TODO\n");
@@ -150,20 +147,25 @@ int main(int argc, char *argv[]) {
          if(inputText) {
             inputTextSize = strlen(inputText);
             printf("Text length: %llu\n", inputTextSize);
-            //count = countCharacters(inputText);
         }
     }
     if(isProbabilities) {
-
         printf("HERE SET PROBABILITIES!");
     }
-
-    //Huffman huff = createHuffman();
+    
     Huffman* huff;
-    huff = initHuffmanFromText(inputText);
-    huff->process(huff);
+    if(importFromFile) {
+        huff = initHuffmanFromFile(inputFileName, saveToFile);
+        huff->process(huff);
 
-    printf("END\n");
+        printf("--- END HUFF FROM A FILE ---\n");
+    } else {
+        //Huffman huff = createHuffman();
+        huff = initHuffmanFromText(inputText, saveToFile);
+        huff->process(huff);
+
+        printf("--- END HUFF FROM A TEXT ---\n");
+    }
 
     /*HUFFMAN:
     * Zesortit znaky podle pravděpodobností

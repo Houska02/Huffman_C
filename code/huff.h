@@ -15,11 +15,14 @@ typedef struct Huffman {
 
 } Huffman;
 
-Huffman* initHuffmanFromText(char *inputText);
+Huffman* initHuffmanFromText(char *inputText, bool saveToFile);
+Huffman* initHuffmanFromFile(char *inputFile, bool saveToFile);
+
 Huffman* initHuffmanFromBinary(char *inputValues); //TODO
 Huffman* initHuffmanFromTable(int *count); // Tabulka četností/pravděpodobnostní tabulka
 
 int* countCharacters(const char *inputText);
+int* processFile(char *fileName);
 
 void compress(Huffman* self); //Jen vypíše do konzole
 void compressIntoFile(Huffman* self); //TODO - Uloží do souboru
