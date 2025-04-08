@@ -1,24 +1,32 @@
 #include "huff.h"
 
-Huffman* initHuffmanFromText(char *inputText, bool saveToFile) { //TODO - outputFileName
+Huffman* initHuffmanFromText(char *inputText, char  *outputFileName) {
     Huffman *huff = (Huffman*)malloc(sizeof(Huffman));
 
     huff->inputText = inputText;
+    huff->fromFile = false;
+    
     huff->count = countCharacters(inputText);
-    if(saveToFile)
+    if(outputFileName != NULL) {
+        huff->outputFileName = outputFileName;
         huff->process = compressIntoFile;
-    else
+    } else
         huff->process = compress;
 
     return huff;
 }
-Huffman* initHuffmanFromFile(char *inputFile, bool saveToFile) { //TODO - outputFileName
+
+Huffman* initHuffmanFromFile(char *inputFile, char  *outputFileName) {
     Huffman *huff = (Huffman*)malloc(sizeof(Huffman));
 
+    huff->fromFile = true;
+    huff->importFileName = inputFile;
+
     huff->count = processFile(inputFile);
-    if(saveToFile)
+    if(outputFileName != NULL) {
+        huff->outputFileName = outputFileName;
         huff->process = compressIntoFile;
-    else
+    } else
         huff->process = compress;
 
     return huff;
@@ -43,42 +51,51 @@ Huffman* initHuffmanFromBinary(char *inputValues) {
 
 void compress(Huffman* self) {
     // Vytvořit kód z tabulky četností
-    createTable(self->count);
+    char **finalCode = createTable(self->count);
+    self->table = finalCode;
+    printResults(self);
     // Získat znak-kód
     // Zakódovat
     // Print
 }
 void compressIntoFile(Huffman* self) {
     // Vytvořit kód z tabulky četností
-    createTable(self->count);
+    char **finalCode = createTable(self->count);
+    self->table = finalCode;
+    printResults(self);
     // Získat znak-kód
     // Zakódovat s cílem uložit
+    saveTo(self);
     // Nějak uložit
 }
 void decompress(Huffman* self) {
 
 }
+
 void simpleProcess(Huffman* self) {
     // Vytvořit kód z tabulky četností
-    createTable(self->count);
+    char **finalCode = createTable(self->count);
     // Získat znak - kód
     // Print
 }
 
-void createTable(int *inputCount) {
-    Node nodes[ASCII_SIZE]; // Pořadí v poli neodpovídá ASCI IDčku (ta velikost je jen tak prozatím xd)
+// inputCount by mělo mít délku ASCII_SIZE
+char** createTable(int *inputCount) {
+    Node nodes[ASCII_SIZE]; // Pořadí v poli neodpovídá ASCII IDčku (ta velikost je jen tak prozatím xd)
 
-    int inputs = 0;
+    int inputs = 0; // Počet prvků v poli nodes
 
     // Získáme charaktery z poli charakterů.... vkládáme do nodes pole a rovnou seřadíme od nejmenšího po největší
     for(int i = 0; i < ASCII_SIZE; i++) {
         if(inputCount[i] > 0) {
-            Node newNode = {.count = inputCount[i], .charCount = 1, .znaky = malloc(1*sizeof(int))};
-            memset(newNode.znaky, 0, 1*sizeof(int));
+            //Node newNode = {.count = inputCount[i], .charCount = 1, .znaky = malloc(1*sizeof(int))};
+            //memset(newNode.znaky, 0, 1*sizeof(int));
+            Node newNode = {.count = inputCount[i], .charCount = 1, .znaky =  calloc(1, sizeof(int))};
+            
             newNode.znaky[newNode.charCount-1] = (unsigned char) i;
-            if(inputs == 0)
+            if(inputs == 0) // Pokud je to první node v poli, tak přidáme
                 nodes[inputs] = newNode;
-            else
+            else // Jinak provedeme přidání na možná existující pozici a posunutí prvků v poli
                 for(int j = 0; j <= inputs; j++) {
                     if(j == inputs) { // Nový poslední prvek
                         nodes[j] = newNode;
@@ -106,10 +123,13 @@ void createTable(int *inputCount) {
         Node first = nodes[i];
         Node second = nodes[i+1];
         // Nový sečtený node:
-        Node newNode = {.count = (first.count + second.count), 
+        /*Node newNode = {.count = (first.count + second.count),
                         .charCount = 0, 
                         .znaky = malloc((first.charCount + second.charCount)*sizeof(int))};
-        memset(newNode.znaky, 0, (first.charCount + second.charCount)*sizeof(int));
+        memset(newNode.znaky, 0, (first.charCount + second.charCount)*sizeof(int));*/
+        Node newNode = {.count = (first.count + second.count),
+                        .charCount = 0, 
+                        .znaky = calloc((first.charCount + second.charCount), sizeof(int))};
         //Vložení znaků
         for(int m = 0; m < first.charCount; m++){
             newNode.znaky[(newNode.charCount++)] = first.znaky[m];
@@ -131,7 +151,6 @@ void createTable(int *inputCount) {
                 newNode = temp;
             }
         }
-
         inputs++;
     }
     printf("New nodes:\n");
@@ -142,35 +161,44 @@ void createTable(int *inputCount) {
 
     // Přiřazení 0 a 1 k prvkům pole
     printf("DEBUG:\n");
-    char freePrefixes[10][10];
-    memset(freePrefixes, 0, 10*sizeof(char));
+    char freePrefixes[20][20];
+    memset(freePrefixes, 0, 20*sizeof(char));
+    for(int i = 0; i < 20; i++)
+        memset(freePrefixes[i], 0, 20*sizeof(char));
     int freePrefixesSize = -1;
+    
+    char **finalCode;
+    finalCode = (char**)calloc(ASCII_SIZE, sizeof(char*));
 
-    for(int ii = (inputs-2); ii >= 0; ii=ii-2) { //(inputs-2)... protože -1 jdeme od posledního, ale protože chceme vynechat sumační součet všech, tak -2  
-        bool jednicka = false;
-
-        char prefix[10];
-        if(freePrefixesSize >= 0) {
-            sprintf(prefix, "%s", freePrefixes[0]);
-            //todo - POSUNUTÍ?
-            for(int pref = 0; pref <= freePrefixesSize; pref++) {
+    for(int ii = (inputs-2); ii >= 0; ii=ii-2) { //(inputs-2)... protože s -1 jdeme od posledního, ale protože chceme vynechat sumační součet všech, tak -2  
+        /* PREFIX */
+        char prefix[20];
+        if(freePrefixesSize >= 0) { // Pokud máme volný prefix
+            sprintf(prefix, "%s", freePrefixes[0]); // Tak vezneme první prvek z pole volných prefixů
+            for(int pref = 0; pref <= freePrefixesSize; pref++) { // Cyklus na posunutí všech prvků v poli volných prefixů
                 if(pref != 0)
                     sprintf(freePrefixes[pref-1], "%s", freePrefixes[pref]);
-                memset(freePrefixes[pref], 0, 10*sizeof(char));
+                memset(freePrefixes[pref], 0, 20*sizeof(char));
             }
             freePrefixesSize--;
         } else
-            memset(prefix, 0, 10*sizeof(char));
-
+            memset(prefix, 0, 20*sizeof(char));
+        
+        /* Přiřazení kódu dvěma prvkům v pořadí: */
+        bool jednicka = false;
         for(int j = 0; j <=1; j++) {
             Node node = nodes[ii-j];
             char sequence = jednicka ? '1': '0';
-            char code[10];
+            char code[21];
+            memset(code, 0, 21*sizeof(char));
 
             sprintf(code, "%s%c", prefix, sequence);
 
             if(node.charCount == 1) { // Tak je to jenom jeden znak a kód nebudeme dávat do freePrefixes
-                printf("'%s' : %d : %d : %s\n", node.znaky, node.count, node.charCount, code);
+                int asciiID = (unsigned char)node.znaky[0];
+                finalCode[asciiID] = (char*) calloc(strlen(code), sizeof(char));
+                strcat(finalCode[asciiID], code);
+                printf("'%s' : %d : %d : %s\n", node.znaky, node.count, node.charCount, finalCode[asciiID]);
             } else {
                 strcat(freePrefixes[++freePrefixesSize], code); // Vložíme do freePrefixes
                 printf("'%s' : %d : %d : %s\n", node.znaky, node.count, node.charCount, code);
@@ -182,6 +210,30 @@ void createTable(int *inputCount) {
     // FREE - for now
     for(int i = 0; i < inputs; i++)
         free(nodes[i].znaky);
+    
+    return finalCode;
+}
+
+void printResults(Huffman *self) {
+    if(self->fromFile == true) {
+        printf("Cannot print results... importing from a FILE\n");
+        printf("TODO LATER....\n");
+        return;
+    }
+    printf("\nResults...\n");
+    
+
+    for(int i = 0; i< strlen(self->inputText); i++) {
+        char c = self->inputText[i];
+        printf("%c - ", c);
+        printf("%s \n", self->table[(unsigned char)c]);
+    }
+    printf("Zakodovano: ");
+    for(int i = 0; i< strlen(self->inputText); i++) {
+        char c = self->inputText[i];
+        printf("%s", self->table[(unsigned char)c]);
+    }
+    printf("\n");
 }
 
 // Spočítá četnosti znaků v textu
@@ -238,3 +290,64 @@ int* processFile(char *fileName) {
     }
     return count;
 }
+
+void saveTo(Huffman *self) {
+    BitWriter bw;
+    initBitWriter(&bw, self->outputFileName);
+
+    printf("Ulozeno   : ");
+    if(self->fromFile) {
+        FILE *file = fopen(self->importFileName, "r"); //Otevření filu na read-only
+        if (file == NULL) {
+            perror("Error opening file");
+            return;
+        }
+        // Čtení charakterů:
+        char ch;
+        unsigned char chU;
+        while ((ch = fgetc(file)) != EOF) { //Bereme charakter po charakteru
+            chU = (unsigned char) ch;
+            for(int r = 0; r < strlen(self->table[chU]); r++){
+                writeBit(&bw, self->table[chU][r]);
+                printf("%c", self->table[chU][r]);
+            }
+
+        }
+        fclose(file);
+    } else {
+        // Zapíšeme kódovací tabulku
+        for(int i = 0; i < ASCII_SIZE; i++) {
+            if(self->count[(unsigned char)i] > 0) {
+                writeTable(&bw, (unsigned char)i, self->table[i], strlen(self->table[i]));
+            }
+        }
+        // Jdeme postupně znak po znaku z self.inputText
+        for(int i = 0; i < strlen(self->inputText); i++) {
+            // Čtení charakterů:
+            char ch = self->inputText[i];
+            unsigned char chU = (unsigned char) ch;
+            for(int r = 0; r < strlen(self->table[chU]); r++) {
+                writeBit(&bw, self->table[chU][r]);
+                printf("%c", self->table[chU][r]);
+            }
+        }
+    }
+    printf("\n");
+    closeBitWriter(&bw);
+
+    // TODO - ODSTRANIT
+    BitReader br;
+    initBitReader(&br, self->outputFileName);
+
+    int bit;
+    printf("Read bits : ");
+    while (readBit(&br, &bit)) {
+        printf("%d ", bit);
+    }
+    printf("\n");
+
+    closeBitReader(&br);
+}
+
+
+

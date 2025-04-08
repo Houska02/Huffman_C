@@ -73,6 +73,12 @@ int main(int argc, char *argv[]) {
     
     bool customOutput = false; // Defaultní hodnota
     char *customOutputValues = NULL;
+    
+    /*
+        INPUTS
+    */
+   char *inputText = NULL;
+   size_t inputTextSize = 0;
 
     /*
     -i <value> - Definovani vstupniho souboru
@@ -86,7 +92,7 @@ int main(int argc, char *argv[]) {
     static struct  option long_options[] = {
         {"input", required_argument, 0, 'i'},
         {"output", required_argument, 0, 'o'},
-        {"msg", no_argument, 0, 'm'},
+        {"msg", required_argument, 0, 'm'},
         {"huff", required_argument, 0, 'h'},
         {"probabilities", no_argument, 0, 'p'},
         {0, 0, 0, 0}
@@ -105,6 +111,7 @@ int main(int argc, char *argv[]) {
                     break;
                 case 'm': // message
                     isSettingText = true;
+                    inputText = optarg;
                     printf("Dal jsi -m\n");
                     break;
                 case 'h': // Výstupní kódování (znaky)
@@ -136,13 +143,7 @@ int main(int argc, char *argv[]) {
     if(importFromFile && isSettingText) // Pokud importujeme ze souboru, tak nebudeme zadávat text ručně
         isSettingText = false;
 
-    /*
-        INPUTS
-    */
-    char *inputText = NULL;
-    size_t inputTextSize = 0;
-
-    if(isSettingText) {
+    if(isSettingText && inputText == NULL) {
         inputText = getInputText();
          if(inputText) {
             inputTextSize = strlen(inputText);
@@ -155,13 +156,13 @@ int main(int argc, char *argv[]) {
     
     Huffman* huff;
     if(importFromFile) {
-        huff = initHuffmanFromFile(inputFileName, saveToFile);
+        huff = initHuffmanFromFile(inputFileName, outputFileName);
         huff->process(huff);
 
         printf("--- END HUFF FROM A FILE ---\n");
     } else {
         //Huffman huff = createHuffman();
-        huff = initHuffmanFromText(inputText, saveToFile);
+        huff = initHuffmanFromText(inputText, outputFileName);
         huff->process(huff);
 
         printf("--- END HUFF FROM A TEXT ---\n");
