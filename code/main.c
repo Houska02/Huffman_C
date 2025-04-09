@@ -52,10 +52,6 @@ char *getInputText() {
     return buffer;
 }
 
-
-// ./main.exe -
-// ./main.exe -
-// ./main.exe -
 // ./main.exe -?
 int main(int argc, char *argv[]) {
     int opt;
@@ -67,11 +63,11 @@ int main(int argc, char *argv[]) {
     bool isSettingText = false; // Defaultní hodnota
 
     bool importFromFile = false; // Defaultní hodnota
-    bool saveToFile = false; // Defaultní hodnota
+    //bool saveToFile = false; unused // Defaultní hodnota
     char *inputFileName = NULL;
     char *outputFileName = NULL;
     
-    bool customOutput = false; // Defaultní hodnota
+    //bool customOutput = false; unused // Defaultní hodnota
     char *customOutputValues = NULL;
     
     /*
@@ -105,7 +101,6 @@ int main(int argc, char *argv[]) {
                     printf("Dal jsi -i, %s\n", inputFileName);
                     break;
                 case 'o': // Output file name
-                    saveToFile = true;
                     outputFileName = optarg;
                     printf("Dal jsi -o, %s\n", outputFileName);
                     break;
@@ -115,7 +110,7 @@ int main(int argc, char *argv[]) {
                     printf("Dal jsi -m\n");
                     break;
                 case 'h': // Výstupní kódování (znaky)
-                    customOutput = true;
+                    //customOutput = true;
                     customOutputValues = optarg;
                     printf("Dal jsi -h, %s\n", customOutputValues);
                     break;

@@ -62,54 +62,63 @@ void initBitReader(BitReader *br, const char *filename) {
     br->bitCount = 0;
 }
 
-int readTable(BitReader *br, unsigned char *character, char *code) {
-    char ch;
-    bool getChar = false;
-    bool getCode = false;
+int readTable(BitReader *br, unsigned char *character, char **code) {
+    int codeLength = 0;
+    *code = calloc(1, sizeof(char));  // Start with just '\0'
 
-    int codeLength = 1;
-    code = calloc(codeLength, sizeof(char));
-    
-    /*  0 - chceme |
-        2 - chceme charakter
-        4 - chceme -
-        6 - chceme 0 a 1 dokud nenarazíme na | 
-    */
     int state = 0; 
+    char ch;
 
-
-    while ((ch = fgetc(br->file)) != EOF) { //Bereme charakter po charakteru
+    while ((ch = fgetc(br->file)) != EOF) {
         switch (state) {
-            case 0: // Chceme |
-                if(ch == '|')
+            case 0: // Expecting '|'
+                if (ch == '|') {
                     state = 2;
-                else
+                } else {
                     return 0;
+                }
                 break;
-            case 2:
+
+            case 2: // Reading character
                 *character = (unsigned char) ch;
                 state = 4;
                 break;
-            case 4: // Chceme -
-                if(ch == '-')
+
+            case 4: // Expecting '-'
+                if (ch == '-') {
                     state = 6;
-                else
+                } else {
                     return 0;
+                }
                 break;
-            
-            case 6:
-                if(ch == '|')
+
+            case 6: // Reading bits until next '|'
+                if (ch == '|') {
+                    (*code)[codeLength] = '\0';  // Null-terminate
                     return 1;
-                code[(codeLength++-1)] = ch;
+                }
+
+                // Grow buffer by 1 char + room for null terminator
+                char *temp = realloc(*code, codeLength + 2);
+                if (!temp) {
+                    free(*code);
+                    return 0;
+                }
+
+                *code = temp;
+                (*code)[codeLength] = ch;
+                codeLength++;
+                (*code)[codeLength] = '\0';  // Always null-terminate after append
                 break;
-            
+
             default:
                 return 0;
-                break;
         }
     }
+
     return 0;
 }
+
 
 int readBit(BitReader *br, int *bit) {
     if (br->bitCount == 0) {

@@ -52,7 +52,7 @@ typedef struct {
     /*Odpoví délce charakterů.
     S číslováním se začíná od 1
     */
-    int charCount;
+    int charLength;
     char* znaky;
 } Node;
 

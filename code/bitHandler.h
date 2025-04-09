@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <stdbool.h>
 
 
@@ -28,6 +29,6 @@ typedef struct BitReader {
 void initBitReader(BitReader *br, const char *filename);
 /* Dokud je co číst, tak vrací 1. Pokud již není, tak je vrácena 0 a čtení by mělo být zastaveno. */
 int readBit(BitReader *br, int *bit);
-int readTable(BitReader *br, unsigned char *character, char *code);
+int readTable(BitReader *br, unsigned char *character, char **code);
 
 void closeBitReader(BitReader *br);
