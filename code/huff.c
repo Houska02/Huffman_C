@@ -80,6 +80,8 @@ void decompress(Huffman* self) {
     initBitReader(&br, self->importFileName);
 
     self->table = importTable(&br);
+    unsigned char ch;
+    decodeNext(self, &br, &ch);
 
     closeBitReader(&br);
     
@@ -316,7 +318,7 @@ void saveTo(Huffman *self) {
     if(self->fromFile) {
         FILE *file = fopen(self->importFileName, "r"); //Otevření filu na read-only
         if (file == NULL) {
-            perror("Error opening file");
+            printf("Error opening file");
             return;
         }
         // Zapíšeme kódovací tabulku
@@ -357,19 +359,6 @@ void saveTo(Huffman *self) {
     }
     printf("\n");
     closeBitWriter(&bw);
-
-    // TODO - ODSTRANIT
-    /*BitReader br;
-    initBitReader(&br, self->outputFileName);
-    
-    int bit;
-    printf("Read bits : ");
-    while (readBit(&br, &bit)) {
-        printf("%d", bit);
-    }
-    printf("\n");
-
-    closeBitReader(&br);*/
 }
 
 char** importTable(BitReader *br) {
@@ -390,5 +379,23 @@ char** importTable(BitReader *br) {
            printf("| Obtained character: %c - %s \n", (unsigned char)i, importedTable[(unsigned char)i]);
     }
     return importedTable;
+}
+
+bool decodeNext(Huffman *self, BitReader *br, unsigned char *ch) {
+    int bit;
+    printf("Read bits : ");
+    while (readBit(br, &bit)) {
+        printf("%d", bit);
+        for(int i = 0; i < ASCII_SIZE ; i++) {
+            if(self->table[(unsigned char)i] == NULL)
+                continue;
+            if(self->table[i][0] == (bit==1?'1':'0'))
+                printf("");
+        }
+
+    }
+    printf("\n");
+
+    return false;
 }
 

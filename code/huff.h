@@ -65,3 +65,5 @@ char** createTable(int *count);
 char** importTable(BitReader *br);
 
 void saveTo(Huffman *self);
+
+bool decodeNext(Huffman *self, BitReader *br, unsigned char *ch);

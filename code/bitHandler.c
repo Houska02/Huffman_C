@@ -75,6 +75,7 @@ int readTable(BitReader *br, unsigned char *character, char **code) {
                 if (ch == '|') {
                     state = 2;
                 } else {
+                    ungetc(ch, br->file);
                     return 0;
                 }
                 break;
