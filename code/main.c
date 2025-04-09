@@ -56,6 +56,8 @@ char *getInputText() {
 int main(int argc, char *argv[]) {
     int opt;
 
+    bool compress = true; // true - compressing | false - decompressing
+
     /* PO SPUŠTĚNÍ:
     * Chtít po uživatelovi slovo nebo znaky a pravděpodobnosti
     */
@@ -68,7 +70,7 @@ int main(int argc, char *argv[]) {
     char *outputFileName = NULL;
     
     //bool customOutput = false; unused // Defaultní hodnota
-    char *customOutputValues = NULL;
+    //char *customOutputValues = NULL;
     
     /*
         INPUTS
@@ -82,18 +84,25 @@ int main(int argc, char *argv[]) {
     -m - Bude po uživatelovi potřeba zadat vstupní text
     Navíc:
     -p - Budeme zadávat pravděpodobnosti
-    -h --huff <values> - Do kolika znaků budeme kódovat (01, 012, abc, ... bude záležet na pořadí v jakém se to tam zadá)
+    NEBUDE ASI... -h --huff <values> - Do kolika znaků budeme kódovat (01, 012, abc, ... bude záležet na pořadí v jakém se to tam zadá)
+    
+    -c
+    -d
+
     -? - Help
     */
     static struct  option long_options[] = {
         {"input", required_argument, 0, 'i'},
         {"output", required_argument, 0, 'o'},
         {"msg", required_argument, 0, 'm'},
-        {"huff", required_argument, 0, 'h'},
+        //{"huff", required_argument, 0, 'h'},
         {"probabilities", no_argument, 0, 'p'},
+        {"compress", no_argument, 0, 'c'},
+        {"decompress", no_argument, 0, 'd'},
         {0, 0, 0, 0}
     };
-    while ((opt = getopt_long(argc, argv, "i:o:m:h:p", long_options, NULL)) != -1) {
+    //while ((opt = getopt_long(argc, argv, "i:o:m:h:pcd", long_options, NULL)) != -1) {
+    while ((opt = getopt_long(argc, argv, "i:o:m:pcd", long_options, NULL)) != -1) {
             switch (opt) {
                 case 'i': // Input file name
                     importFromFile = true;
@@ -109,14 +118,19 @@ int main(int argc, char *argv[]) {
                     inputText = optarg;
                     printf("Dal jsi -m\n");
                     break;
-                case 'h': // Výstupní kódování (znaky)
-                    //customOutput = true;
-                    customOutputValues = optarg;
-                    printf("Dal jsi -h, %s\n", customOutputValues);
-                    break;
+                // case 'h': // Výstupní kódování (znaky)
+                //     customOutputValues = optarg;
+                //     printf("Dal jsi -h, %s\n", customOutputValues);
+                //     break;
                 case 'p': // Probabilities
                     printf("Dal jsi -p\n");
                     isProbabilities = true;
+                    break;
+                case 'c':
+                    compress = true; // trochu placebo, když true je to i default hodnota xd
+                    break;
+                case 'd':
+                    compress = false;
                     break;
                 case '?':
                     printf("-f <file_name> -> Define a file name.\n");
@@ -131,53 +145,54 @@ int main(int argc, char *argv[]) {
             }
     }
 
-    if(importFromFile && isProbabilities) //Pokud budeme importovat ze souboru, tak nebudeme zadávat vlastní pravděpodobnosti... mohlo by být moc náročné
-        isProbabilities = false;
-    if(!isProbabilities && !isSettingText && !importFromFile) // Pokud neimportujeme ze souboru a ani nezádáváme čistě pravděpodobnosti, tak bude text
-        isSettingText = true;
-    if(importFromFile && isSettingText) // Pokud importujeme ze souboru, tak nebudeme zadávat text ručně
-        isSettingText = false;
+    if(compress) {
+        if(importFromFile && isProbabilities) //Pokud budeme importovat ze souboru, tak nebudeme zadávat vlastní pravděpodobnosti... mohlo by být moc náročné
+            isProbabilities = false;
+        if(!isProbabilities && !isSettingText && !importFromFile) // Pokud neimportujeme ze souboru a ani nezádáváme čistě pravděpodobnosti, tak bude text
+            isSettingText = true;
+        if(importFromFile && isSettingText) // Pokud importujeme ze souboru, tak nebudeme zadávat text ručně
+            isSettingText = false;
 
-    if(isSettingText && inputText == NULL) {
-        inputText = getInputText();
-         if(inputText) {
-            inputTextSize = strlen(inputText);
-            printf("Text length: %llu\n", inputTextSize);
+        if(isSettingText && inputText == NULL) {
+            inputText = getInputText();
+                if(inputText) {
+                inputTextSize = strlen(inputText);
+                printf("Text length: %llu\n", inputTextSize);
+            }
         }
+        if(isProbabilities) {
+            printf("HERE SET PROBABILITIES!");
+        }
+        Huffman* huff;
+        if(importFromFile) {
+            huff = initHuffmanFromFile(inputFileName, outputFileName);
+            huff->process(huff);
+
+            printf("--- END HUFF FROM A FILE ---\n");
+        } else {
+            //Huffman huff = createHuffman();
+            huff = initHuffmanFromText(inputText, outputFileName);
+            huff->process(huff);
+
+            printf("--- END HUFF FROM A TEXT ---\n");
+        }
+
+        if(huff->count)
+            free(huff->count);
     }
-    if(isProbabilities) {
-        printf("HERE SET PROBABILITIES!");
-    }
-    
-    Huffman* huff;
-    if(importFromFile) {
-        huff = initHuffmanFromFile(inputFileName, outputFileName);
+    if(!compress) {
+        Huffman *huff;
+        huff = initHuffmanFromBinary(inputFileName, outputFileName);
         huff->process(huff);
-
-        printf("--- END HUFF FROM A FILE ---\n");
-    } else {
-        //Huffman huff = createHuffman();
-        huff = initHuffmanFromText(inputText, outputFileName);
-        huff->process(huff);
-
-        printf("--- END HUFF FROM A TEXT ---\n");
+        printf("--- END HUFF FROM BINARY (decompression) ---\n");
     }
-
     /*HUFFMAN:
     * Zesortit znaky podle pravděpodobností
     * Vytvořit skupiny po n-1 znaků a zjistit jak velká bude poslední skupina
         * Pokud bude poslední ksupina malá, tak budeme sčítat po n znacích
     * */
 
-    /* VÝSTUP:
-    * Znak - Pravděpodobnost- Kód
-    * 
-    * Popřípadě Slovo a jeho zakódování
-    */
-
     if(inputText) // Uvolnění paměti
         free(inputText);
-    if(huff->count)
-        free(huff->count);
     return EXIT_SUCCESS;
 }

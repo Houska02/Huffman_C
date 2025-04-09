@@ -32,20 +32,22 @@ Huffman* initHuffmanFromFile(char *inputFile, char  *outputFileName) {
     return huff;
 }
 
-Huffman* initHuffmanFromTable(int *count) {
+/*Huffman* initHuffmanFromTable(int *count) {
+     Huffman *huff = (Huffman*)malloc(sizeof(Huffman));
+
+     huff->count = count;
+     huff->process = simpleProcess;
+     return huff;
+}*/
+
+Huffman* initHuffmanFromBinary(char *importFileName, char *outputFileName) {
     Huffman *huff = (Huffman*)malloc(sizeof(Huffman));
 
-    huff->count = count;
-    huff->process = simpleProcess;
-
-    return huff;
-}
-Huffman* initHuffmanFromBinary(char *inputValues) {
-    Huffman *huff = (Huffman*)malloc(sizeof(Huffman));
-    // TODO
+    huff->fromFile = true;
+    huff->importFileName = importFileName;
+    huff->outputFileName = outputFileName;
 
     huff->process = decompress;
-
     return huff;
 }
 
@@ -74,7 +76,16 @@ void compressIntoFile(Huffman* self) {
     // Nějak uložit
 }
 void decompress(Huffman* self) {
+    BitReader br;
+    initBitReader(&br, self->importFileName);
 
+    self->table = importTable(&br);
+
+    closeBitReader(&br);
+    
+    for(int i = 0; i < ASCII_SIZE; i++)
+        free(self->table[i]);
+    free(self->table);
 }
 
 void simpleProcess(Huffman* self) {
@@ -348,17 +359,9 @@ void saveTo(Huffman *self) {
     closeBitWriter(&bw);
 
     // TODO - ODSTRANIT
-    BitReader br;
+    /*BitReader br;
     initBitReader(&br, self->outputFileName);
     
-    printf("Read table: \n");
-    unsigned char ch;
-    char *code = NULL;
-    while(readTable(&br, &ch, &code)) {
-        printf("Obtained character: %c - %s \n", ch, code);
-        free(code);
-        code = NULL;
-    }
     int bit;
     printf("Read bits : ");
     while (readBit(&br, &bit)) {
@@ -366,8 +369,26 @@ void saveTo(Huffman *self) {
     }
     printf("\n");
 
-    closeBitReader(&br);
+    closeBitReader(&br);*/
 }
 
+char** importTable(BitReader *br) {
+    char **importedTable; // [ASCII][kód]
+    importedTable = (char**)calloc(ASCII_SIZE, sizeof(char*));
 
+    unsigned char ch;
+    char *code = NULL;
+    while(readTable(br, &ch, &code)) {
+        importedTable[ch] = code;
+        //free(code);
+        code = NULL;
+    }
+    printf("Read table: \n");
+    for(int i = 0; i <ASCII_SIZE; i++) {
+        //printf("DEBUG: %c - %s \n", (unsigned char)i, importedTable[(unsigned char)i]);
+        if(importedTable[(unsigned char)i] != NULL)
+           printf("| Obtained character: %c - %s \n", (unsigned char)i, importedTable[(unsigned char)i]);
+    }
+    return importedTable;
+}
 

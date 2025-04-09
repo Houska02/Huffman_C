@@ -3,7 +3,6 @@
 #include <string.h>
 #include <stdbool.h>
 
-
 typedef struct BitWriter {
     FILE *file; // Output file with
     unsigned char buffer;

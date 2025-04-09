@@ -9,7 +9,7 @@
             "request": "launch",
             "name": "Debug",
             "program": "${workspaceFolder}/code/main.exe",
-            "args": [],
+            "args": "-i input.huff -d",
             "cwd": "${workspaceFolder}"
         }
     ]
