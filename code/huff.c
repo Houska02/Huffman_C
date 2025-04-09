@@ -338,7 +338,13 @@ void saveTo(Huffman *self) {
     // TODO - ODSTRANIT
     BitReader br;
     initBitReader(&br, self->outputFileName);
-
+    
+    printf("Read table: \n");
+    char ch;
+    char *code;
+    while(readTable(&br, &ch, &code)) {
+        printf("Obtained character: %c \n", ch);
+    }
     int bit;
     printf("Read bits : ");
     while (readBit(&br, &bit)) {

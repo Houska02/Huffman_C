@@ -15,7 +15,8 @@ void writeCharCount(BitWriter *bitWriter, int count) { //TODO - předělat na ui
 void writeTable(BitWriter *bitWriter, unsigned char character, char *code, int codeLength) {
     char c1 = '-';
     char c2 = '|';
-    // <char_count>|<uChar>-<code>|
+    // |<uChar>-<code>||<uChar>-<code>| //TODO
+    fwrite(&c2, sizeof(char), 1, bitWriter->file);
     fwrite(&character, sizeof(unsigned char), 1, bitWriter->file);
     fwrite(&c1, sizeof(char), 1, bitWriter->file);
     fwrite(code, sizeof(char), codeLength, bitWriter->file);
@@ -61,8 +62,53 @@ void initBitReader(BitReader *br, const char *filename) {
     br->bitCount = 0;
 }
 
-int readTable(BitReader *br ) {
+int readTable(BitReader *br, unsigned char *character, char *code) {
+    char ch;
+    bool getChar = false;
+    bool getCode = false;
 
+    int codeLength = 1;
+    code = calloc(codeLength, sizeof(char));
+    
+    /*  0 - chceme |
+        2 - chceme charakter
+        4 - chceme -
+        6 - chceme 0 a 1 dokud nenarazíme na | 
+    */
+    int state = 0; 
+
+
+    while ((ch = fgetc(br->file)) != EOF) { //Bereme charakter po charakteru
+        switch (state) {
+            case 0: // Chceme |
+                if(ch == '|')
+                    state = 2;
+                else
+                    return 0;
+                break;
+            case 2:
+                *character = (unsigned char) ch;
+                state = 4;
+                break;
+            case 4: // Chceme -
+                if(ch == '-')
+                    state = 6;
+                else
+                    return 0;
+                break;
+            
+            case 6:
+                if(ch == '|')
+                    return 1;
+                code[(codeLength++-1)] = ch;
+                break;
+            
+            default:
+                return 0;
+                break;
+        }
+    }
+    return 0;
 }
 
 int readBit(BitReader *br, int *bit) {
