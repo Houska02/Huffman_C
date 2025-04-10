@@ -79,9 +79,11 @@ void decompress(Huffman* self) {
     BitReader br;
     initBitReader(&br, self->importFileName);
 
-    self->table = importTable(&br);
+    int count = 0; // Počet importovaných znaků z tabulky, které mají nějaký kód
+    self->table = importTable(&br, &count);
+    printf("Nenulovych kodu: %d\n", count);
     unsigned char ch;
-    decodeNext(self, &br, &ch);
+    decodeNext(self, &br, &ch, count);
 
     closeBitReader(&br);
     
@@ -361,7 +363,7 @@ void saveTo(Huffman *self) {
     closeBitWriter(&bw);
 }
 
-char** importTable(BitReader *br) {
+char** importTable(BitReader *br, int *count) {
     char **importedTable; // [ASCII][kód]
     importedTable = (char**)calloc(ASCII_SIZE, sizeof(char*));
 
@@ -375,25 +377,59 @@ char** importTable(BitReader *br) {
     printf("Read table: \n");
     for(int i = 0; i <ASCII_SIZE; i++) {
         //printf("DEBUG: %c - %s \n", (unsigned char)i, importedTable[(unsigned char)i]);
-        if(importedTable[(unsigned char)i] != NULL)
+        if(importedTable[(unsigned char)i] != NULL){
            printf("| Obtained character: %c - %s \n", (unsigned char)i, importedTable[(unsigned char)i]);
+           *count = *count + 1;
+        }
     }
     return importedTable;
 }
 
-bool decodeNext(Huffman *self, BitReader *br, unsigned char *ch) {
-    int bit;
-    printf("Read bits : ");
-    while (readBit(br, &bit)) {
-        printf("%d", bit);
-        for(int i = 0; i < ASCII_SIZE ; i++) {
-            if(self->table[(unsigned char)i] == NULL)
-                continue;
-            if(self->table[i][0] == (bit==1?'1':'0'))
-                printf("");
-        }
+bool decodeNext(Huffman *self, BitReader *br, unsigned char *ch, int count) {
+    char *match = calloc(count, sizeof(char)); // Pole charakterů, se kterými se kód zatím shoduje při čtení
+    int matchCount = 0;
 
+    int bit;
+    int readingBit= 0;
+    printf("Read bits : \n");
+    while (readBit(br, &bit)) { //Přečteme bit v pořadí
+        printf("%d", bit);
+
+        if(readingBit == 0) { // Projdeme naši ASCII tabulku, pokud procházíme první nový bit
+            for(int i = 0; i < ASCII_SIZE ; i++) {
+                if(self->table[(unsigned char)i] == NULL)
+                    continue;
+                if(self->table[i][readingBit] == (bit==1?'1':'0')) { // Pokud máme shodu (přičteme readingBit)
+                    // tak přiřadíme shodu do match pole
+                    match[matchCount++] = (unsigned char) i;
+                    //printf(" Shoda s %c\n", match[matchCount-1]);
+                }
+            }
+            readingBit++;
+        } else {
+            for(int i = 0; i < matchCount; i++) {
+                if(self->table[(unsigned char)match[i]][readingBit] != (bit==1?'1':'0')) {
+                    // Odstraníme nechtěný prvek a posuneme seznam
+                    for(int j = i+1; j <= matchCount; j++) {
+                        match[j-1] = match[j];
+                    }
+                    //match[i] = '\0';
+                    i--;
+                    matchCount--;
+                }
+            }
+            readingBit++;
+        }
+        // Pokud je v match poli jen jeden prvek, tak máme shodu
+        if(matchCount == 1) {
+            printf(" 'Match %c'\n", match[matchCount-1]);
+
+            matchCount = 0; //Reset counteru, aby jsem začali opět od začátku
+            readingBit = 0;
+        }
     }
+    free(match);
+    
     printf("\n");
 
     return false;

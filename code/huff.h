@@ -62,8 +62,9 @@ typedef struct {
 } Node;
 
 char** createTable(int *count);
-char** importTable(BitReader *br);
+// count - Počet znaků z ASCII, které mají nějaký kód
+char** importTable(BitReader *br, int *count);
 
 void saveTo(Huffman *self);
 
-bool decodeNext(Huffman *self, BitReader *br, unsigned char *ch);
+bool decodeNext(Huffman *self, BitReader *br, unsigned char *ch, int count);
