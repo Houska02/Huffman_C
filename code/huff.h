@@ -67,4 +67,4 @@ char** importTable(BitReader *br, int *count);
 
 void saveTo(Huffman *self);
 
-bool decodeNext(Huffman *self, BitReader *br, unsigned char *ch, int count);
+void decodeToFile(Huffman *self, BitReader *br, int count);

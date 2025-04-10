@@ -82,8 +82,8 @@ void decompress(Huffman* self) {
     int count = 0; // Počet importovaných znaků z tabulky, které mají nějaký kód
     self->table = importTable(&br, &count);
     printf("Nenulovych kodu: %d\n", count);
-    unsigned char ch;
-    decodeNext(self, &br, &ch, count);
+    //unsigned char ch;
+    decodeToFile(self, &br, count);
 
     closeBitReader(&br);
     
@@ -385,15 +385,17 @@ char** importTable(BitReader *br, int *count) {
     return importedTable;
 }
 
-bool decodeNext(Huffman *self, BitReader *br, unsigned char *ch, int count) {
+void decodeToFile(Huffman *self, BitReader *br, int count) {
+    FILE *file = fopen(self->outputFileName, "w"); //Otevření souboru do kterého budeme ukládat
+
     char *match = calloc(count, sizeof(char)); // Pole charakterů, se kterými se kód zatím shoduje při čtení
     int matchCount = 0;
 
     int bit;
     int readingBit= 0;
-    printf("Read bits : \n");
+    printf("Read: \n");
     while (readBit(br, &bit)) { //Přečteme bit v pořadí
-        printf("%d", bit);
+        //printf("%d", bit);
 
         if(readingBit == 0) { // Projdeme naši ASCII tabulku, pokud procházíme první nový bit
             for(int i = 0; i < ASCII_SIZE ; i++) {
@@ -422,7 +424,9 @@ bool decodeNext(Huffman *self, BitReader *br, unsigned char *ch, int count) {
         }
         // Pokud je v match poli jen jeden prvek, tak máme shodu
         if(matchCount == 1) {
-            printf(" 'Match %c'\n", match[matchCount-1]);
+            //printf(" 'Match %c'\n", match[matchCount-1]);
+            printf("%c", match[matchCount-1]);
+            fwrite(&match[matchCount-1], sizeof(char), 1, file);
 
             matchCount = 0; //Reset counteru, aby jsem začali opět od začátku
             readingBit = 0;
@@ -431,7 +435,6 @@ bool decodeNext(Huffman *self, BitReader *br, unsigned char *ch, int count) {
     free(match);
     
     printf("\n");
-
-    return false;
+    fclose(file);
 }
 
