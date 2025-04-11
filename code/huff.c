@@ -49,35 +49,29 @@ Huffman* initHuffmanFromBinary(char *importFileName, char *outputFileName) {
 
 void compress(Huffman* self) {
     self->table = createTable(self->count); // Creating a coding table
-
     printResults(self);
-    // Získat znak-kód
-    // Zakódovat
-    // Print
     
     for(int i = 0; i < ASCII_SIZE; i++)
         free(self->table[i]);
     free(self->table);
 }
 void compressIntoFile(Huffman* self) {
-    // Vytvořit kód z tabulky četností
-    char **finalCode = createTable(self->count);
-    self->table = finalCode;
-    printResults(self);
-    // Získat znak-kód
-    // Zakódovat s cílem uložit
+    self->table = createTable(self->count); // Creating a coding table
     saveTo(self);
-    // Nějak uložit
+
+    for(int i = 0; i < ASCII_SIZE; i++)
+        free(self->table[i]);
+    free(self->table);
 }
 void decompress(Huffman* self) {
     BitReader br;
     initBitReader(&br, self->importFileName);
 
-    int count = 0; // Počet importovaných znaků z tabulky, které mají nějaký kód
-    self->table = importTable(&br, &count);
-    printf("Nenulovych kodu: %d\n", count);
-    //unsigned char ch;
-    decodeToFile(self, &br, count);
+    int uniqueCharCount = 0; // Počet importovaných znaků z tabulky, které mají nějaký kód
+    self->table = importTable(&br, &uniqueCharCount);
+    printf("Imported from %s\n", self->importFileName);
+
+    decode(self, &br, uniqueCharCount);
 
     closeBitReader(&br);
     
@@ -86,15 +80,11 @@ void decompress(Huffman* self) {
     free(self->table);
 }
 
-void simpleProcess(Huffman* self) {
-    // Vytvořit kód z tabulky četností
-    char **finalCode = createTable(self->count);
-    self->table = finalCode;
-    // Získat znak - kód
-    // Print
-}
 
-void insertSortedNode(Node *nodes, int *count, Node newNode) {
+/* Help function for inserting newNode into a nodes array.
+    Array is autoamtically sorted with this function in ascending order.
+*/
+void insertNode(Node *nodes, int *count, Node newNode) {
     for (int j = 0; j <= *count; j++) {
         if (j == *count) {
             nodes[j] = newNode;
@@ -123,14 +113,9 @@ char** createTable(int *inputCount) {
             if(inputs == 0) // If it is the first Node in the array
                 nodes[inputs] = newNode;  
             else // Or we will add it and sort it in ascending order
-                insertSortedNode(nodes, &inputs, newNode);
+                insertNode(nodes, &inputs, newNode);
             inputs++;
         }
-    }
-    printf("Sorted characters:\n");
-    for (int i = 0; i < inputs; i++) {
-        Node node = nodes[i];
-        printf("'%s' : %d\n", node.znaky, node.count);
     }
     
     // Provedeme huffmanovské sčítání... nové nody vkládáme do nodes pole podle počtu charakterů (dále použita na sčítání)
@@ -149,64 +134,57 @@ char** createTable(int *inputCount) {
             newNode.znaky[(newNode.charLength++)] = second.znaky[m];
         }
         // Adding newNode and sorting it in ascending order
-        insertSortedNode(nodes, &inputs, newNode);
+        insertNode(nodes, &inputs, newNode);
         inputs++;
     }
-    /*printf("New nodes:\n");
-    for (int i = 0; i < inputs; i++) {
-        Node node = nodes[i];
-        printf("'%s' : %d : %d\n", node.znaky, node.count, node.charLength);
-    }*/
 
-    // Přiřazení 0 a 1 k prvkům pole
-    printf("DEBUG:\n");
-    char freePrefixes[20][20];
-    memset(freePrefixes, 0, 20*sizeof(char));
-    for(int i = 0; i < 20; i++)
-        memset(freePrefixes[i], 0, 20*sizeof(char));
+    /* Code creation */
+
     int freePrefixesSize = -1;
-    
-    char **finalCode;
+    char freePrefixes[FREE_PREFIX_ARRAY_SIZE][CODE_SIZE]; // free prefix is sequence of zeros and ones that will be used later ... for example from prefix 001 we will create 0010 and 0011 (these could be again free prefixes)
+    memset(freePrefixes, 0, FREE_PREFIX_ARRAY_SIZE*sizeof(char));
+    for(int i = 0; i < FREE_PREFIX_ARRAY_SIZE; i++)
+        memset(freePrefixes[i], 0, CODE_SIZE*sizeof(char));
+
+    char **finalCode; // finální kódovací tabulka
     finalCode = (char**)calloc(ASCII_SIZE, sizeof(char*));
 
-    for(int ii = (inputs-2); ii >= 0; ii=ii-2) { //(inputs-2)... protože s -1 jdeme od posledního, ale protože chceme vynechat sumační součet všech, tak -2  
+    for(int ii = (inputs-2); ii >= 0; ii=ii-2) { //(inputs-2)... because when starting with -1 we will also include the summation node... and we do not want that
         /* PREFIX */
-        char prefix[20];
+        char prefix[CODE_SIZE];
         if(freePrefixesSize >= 0) { // Pokud máme volný prefix
             sprintf(prefix, "%s", freePrefixes[0]); // Tak vezneme první prvek z pole volných prefixů
             for(int pref = 0; pref <= freePrefixesSize; pref++) { // Cyklus na posunutí všech prvků v poli volných prefixů
                 if(pref != 0)
                     sprintf(freePrefixes[pref-1], "%s", freePrefixes[pref]);
-                memset(freePrefixes[pref], 0, 20*sizeof(char));
+                memset(freePrefixes[pref], 0, CODE_SIZE*sizeof(char));
             }
             freePrefixesSize--;
         } else
-            memset(prefix, 0, 20*sizeof(char));
+            memset(prefix, 0, CODE_SIZE*sizeof(char));
         
-        /* Přiřazení kódu dvěma prvkům v pořadí: */
-        bool jednicka = false;
+        /* Assigning a code to two nodes in queue: */
+        bool one = false;
         for(int j = 0; j <=1; j++) {
             Node node = nodes[ii-j];
-            char sequence = jednicka ? '1': '0';
-            char code[21];
-            memset(code, 0, 21*sizeof(char));
+            char sequence = one ? '1': '0';
+            char code[CODE_SIZE];
+            memset(code, 0, CODE_SIZE*sizeof(char));
 
-            sprintf(code, "%s%c", prefix, sequence);
+            sprintf(code, "%s%c", prefix, sequence); // <prefix> + <new_bit>
 
-            if(node.charLength == 1) { // Tak je to jenom jeden znak a kód nebudeme dávat do freePrefixes
+            if(node.charLength == 1) { // If it is just one character we do not want to use that as a prefix ---> final code
                 int asciiID = (unsigned char)node.znaky[0];
                 finalCode[asciiID] = (char*) calloc(strlen(code), sizeof(char));
                 strcat(finalCode[asciiID], code);
-                printf("'%s' : %d : %d : %s\n", node.znaky, node.count, node.charLength, finalCode[asciiID]);
-            } else {
+            } else { // else --> this new code is a free prefix that will be used later (or not)
                 strcat(freePrefixes[++freePrefixesSize], code); // Vložíme do freePrefixes
-                printf("'%s' : %d : %d : %s\n", node.znaky, node.count, node.charLength, code);
             }
-            jednicka = !jednicka;
+            one = !one;
         }
     }
 
-    // FREE - for now
+    // FREE nodes
     for(int i = 0; i < inputs; i++)
         free(nodes[i].znaky);
     
@@ -214,20 +192,22 @@ char** createTable(int *inputCount) {
 }
 
 void printResults(Huffman *self) {
+    printf("Compressed text: \n");
+
     if(self->fromFile == true) {
-        printf("Cannot print results... importing from a FILE\n");
-        printf("TODO LATER....\n");
+        FILE *file = fopen(self->importFileName, "r");
+        if (file == NULL) {
+            perror("Error opening file");
+            return;
+        }
+        char ch;
+        while ((ch = fgetc(file)) != EOF) { // charakter po charakteru
+            printf("%s", self->table[(unsigned char)ch]);
+        }
+        printf("\n");
+        fclose(file);
         return;
     }
-    printf("\nResults...\n");
-    
-
-    for(int i = 0; i< strlen(self->inputText); i++) {
-        char c = self->inputText[i];
-        printf("%c - ", c);
-        printf("%s \n", self->table[(unsigned char)c]);
-    }
-    printf("Zakodovano: ");
     for(int i = 0; i< strlen(self->inputText); i++) {
         char c = self->inputText[i];
         printf("%s", self->table[(unsigned char)c]);
@@ -235,7 +215,6 @@ void printResults(Huffman *self) {
     printf("\n");
 }
 
-// Spočítá četnosti znaků v textu
 int* countCharacters(const char *inputText) {
     int *count = malloc(ASCII_SIZE*sizeof(int));
     if(!count) {
@@ -246,21 +225,11 @@ int* countCharacters(const char *inputText) {
     for(int i = 0; inputText[i] != '\0'; i++) {
         count[(unsigned char)inputText[i]]++;
     }
-    
-    // Print character counts
-    printf("Character frequencies:\n");
-    for (int i = 0; i < ASCII_SIZE; i++) {
-        if (count[i] > 0) {
-            printf("'%c' : %d\n", i, count[i]);
-        }
-    }
-
     return count;
 }
 
-// Spočítá četnosti znaků v souboru
 int* processFile(char *fileName) {
-    FILE *file = fopen(fileName, "r"); //Otevření filu na read-only
+    FILE *file = fopen(fileName, "r"); // Opening file, read-only
     if (file == NULL) {
         perror("Error opening file");
         return NULL;
@@ -269,24 +238,16 @@ int* processFile(char *fileName) {
     //Pole četností
     int *count = malloc(ASCII_SIZE*sizeof(int));
     if(!count) {
-        return NULL; //Alokace se nezdařila
+        return NULL; // Allocation failed
     }
     memset(count, 0, ASCII_SIZE*sizeof(int));
 
-    // Čtení charakterů:
+    // Reading characters from file:
     char ch;
-    while ((ch = fgetc(file)) != EOF) { //Bereme charakter po charakteru
+    while ((ch = fgetc(file)) != EOF) { //charakter po charakteru
         count[(unsigned char)ch]++;
     }
     fclose(file);
-
-    // Print character counts
-    printf("Character frequencies in a file:\n");
-    for (int i = 0; i < ASCII_SIZE; i++) {
-        if (count[i] > 0) {
-            printf("'%c' : %d\n", i, count[i]);
-        }
-    }
     return count;
 }
 
@@ -294,9 +255,8 @@ void saveTo(Huffman *self) {
     BitWriter bw;
     initBitWriter(&bw, self->outputFileName);
 
-    printf("Ulozeno   : ");
     if(self->fromFile) {
-        FILE *file = fopen(self->importFileName, "r"); //Otevření filu na read-only
+        FILE *file = fopen(self->importFileName, "r"); //Opening import file, read-only
         if (file == NULL) {
             printf("Error opening file");
             return;
@@ -307,14 +267,13 @@ void saveTo(Huffman *self) {
                 writeTable(&bw, (unsigned char)i, self->table[i], strlen(self->table[i]));
             }
         }
-        // Čtení charakterů:
+        // Character compression:
         char ch;
         unsigned char chU;
-        while ((ch = fgetc(file)) != EOF) { //Bereme charakter po charakteru
+        while ((ch = fgetc(file)) != EOF) { //charakter po charakteru
             chU = (unsigned char) ch;
-            for(int r = 0; r < strlen(self->table[chU]); r++){
+            for(int r = 0; r < strlen(self->table[chU]); r++) {
                 writeBit(&bw, self->table[chU][r]);
-                printf("%c", self->table[chU][r]);
             }
 
         }
@@ -326,22 +285,20 @@ void saveTo(Huffman *self) {
                 writeTable(&bw, (unsigned char)i, self->table[i], strlen(self->table[i]));
             }
         }
-        // Jdeme postupně znak po znaku z self.inputText
-        for(int i = 0; i < strlen(self->inputText); i++) {
-            // Čtení charakterů:
+        // Character compression:
+        for(int i = 0; i < strlen(self->inputText); i++) { // znak po znaku z self.inputText
             char ch = self->inputText[i];
             unsigned char chU = (unsigned char) ch;
             for(int r = 0; r < strlen(self->table[chU]); r++) {
                 writeBit(&bw, self->table[chU][r]);
-                printf("%c", self->table[chU][r]);
             }
         }
     }
-    printf("\n");
     closeBitWriter(&bw);
+    printf("... saved into %s", self->outputFileName);
 }
 
-char** importTable(BitReader *br, int *count) {
+char** importTable(BitReader *br, int *uniqueCharCount) {
     char **importedTable; // [ASCII][kód]
     importedTable = (char**)calloc(ASCII_SIZE, sizeof(char*));
 
@@ -349,40 +306,29 @@ char** importTable(BitReader *br, int *count) {
     char *code = NULL;
     while(readTable(br, &ch, &code)) {
         importedTable[ch] = code;
+        *uniqueCharCount = *uniqueCharCount + 1;
         //free(code);
         code = NULL;
-    }
-    printf("Read table: \n");
-    for(int i = 0; i <ASCII_SIZE; i++) {
-        //printf("DEBUG: %c - %s \n", (unsigned char)i, importedTable[(unsigned char)i]);
-        if(importedTable[(unsigned char)i] != NULL){
-           printf("| Obtained character: %c - %s \n", (unsigned char)i, importedTable[(unsigned char)i]);
-           *count = *count + 1;
-        }
     }
     return importedTable;
 }
 
-void decodeToFile(Huffman *self, BitReader *br, int count) {
+void decode(Huffman *self, BitReader *br, int uniqueCharCount) {
     FILE *file = fopen(self->outputFileName, "w"); //Otevření souboru do kterého budeme ukládat
 
-    char *match = calloc(count, sizeof(char)); // Pole charakterů, se kterými se kód zatím shoduje při čtení
+    char *match = calloc(uniqueCharCount, sizeof(char)); // Pole charakterů, se kterými se kód zatím shoduje při čtení
     int matchCount = 0;
 
     int bit;
     int readingBit= 0;
-    printf("Read: \n");
-    while (readBit(br, &bit)) { //Přečteme bit v pořadí
-        //printf("%d", bit);
-
-        if(readingBit == 0) { // Projdeme naši ASCII tabulku, pokud procházíme první nový bit
+    while (readBit(br, &bit)) { //Reading next bit in queue
+        if(readingBit == 0) { // Looping through ASCII self.table array if we are matching first bit
             for(int i = 0; i < ASCII_SIZE ; i++) {
                 if(self->table[(unsigned char)i] == NULL)
                     continue;
                 if(self->table[i][readingBit] == (bit==1?'1':'0')) { // Pokud máme shodu (přičteme readingBit)
                     // tak přiřadíme shodu do match pole
                     match[matchCount++] = (unsigned char) i;
-                    //printf(" Shoda s %c\n", match[matchCount-1]);
                 }
             }
             readingBit++;
@@ -393,7 +339,6 @@ void decodeToFile(Huffman *self, BitReader *br, int count) {
                     for(int j = i+1; j <= matchCount; j++) {
                         match[j-1] = match[j];
                     }
-                    //match[i] = '\0';
                     i--;
                     matchCount--;
                 }
@@ -402,7 +347,6 @@ void decodeToFile(Huffman *self, BitReader *br, int count) {
         }
         // Pokud je v match poli jen jeden prvek, tak máme shodu
         if(matchCount == 1) {
-            //printf(" 'Match %c'\n", match[matchCount-1]);
             printf("%c", match[matchCount-1]);
             fwrite(&match[matchCount-1], sizeof(char), 1, file);
 
