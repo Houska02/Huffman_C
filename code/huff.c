@@ -1,5 +1,7 @@
 #include "huff.h"
 
+/* INIT FUNCTIONS */
+
 Huffman* initHuffmanFromText(char *inputText, char  *outputFileName) {
     Huffman *huff = (Huffman*)malloc(sizeof(Huffman));
 
@@ -32,14 +34,6 @@ Huffman* initHuffmanFromFile(char *inputFile, char  *outputFileName) {
     return huff;
 }
 
-/*Huffman* initHuffmanFromTable(int *count) {
-     Huffman *huff = (Huffman*)malloc(sizeof(Huffman));
-
-     huff->count = count;
-     huff->process = simpleProcess;
-     return huff;
-}*/
-
 Huffman* initHuffmanFromBinary(char *importFileName, char *outputFileName) {
     Huffman *huff = (Huffman*)malloc(sizeof(Huffman));
 
@@ -51,10 +45,10 @@ Huffman* initHuffmanFromBinary(char *importFileName, char *outputFileName) {
     return huff;
 }
 
+/* process FUNCTIONS */
+
 void compress(Huffman* self) {
-    // Vytvořit kód z tabulky četností
-    char **finalCode = createTable(self->count);
-    self->table = finalCode;
+    self->table = createTable(self->count); // Creating a coding table
 
     printResults(self);
     // Získat znak-kód
@@ -100,36 +94,36 @@ void simpleProcess(Huffman* self) {
     // Print
 }
 
+void insertSortedNode(Node *nodes, int *count, Node newNode) {
+    for (int j = 0; j <= *count; j++) {
+        if (j == *count) {
+            nodes[j] = newNode;
+            break;
+        }
+        if (nodes[j].count > newNode.count) {
+            Node temp = nodes[j];
+            nodes[j] = newNode;
+            newNode = temp;
+        }
+    }
+}
+
 // inputCount by mělo mít délku ASCII_SIZE
 char** createTable(int *inputCount) {
     Node nodes[ASCII_SIZE]; // Pořadí v poli neodpovídá ASCII IDčku (ta velikost je jen tak prozatím xd)
 
-    int inputs = 0; // Počet prvků v poli nodes
+    int inputs = 0; // Number of elements in the nodes array
 
-    // Získáme charaktery z poli charakterů.... vkládáme do nodes pole a rovnou seřadíme od nejmenšího po největší
+    // Získáme charaktery z poli četností. Vlkládáme do nodes pole a rovnou seřadíme  od nejmenšího po největší
     for(int i = 0; i < ASCII_SIZE; i++) {
         if(inputCount[i] > 0) {
-            //Node newNode = {.count = inputCount[i], .charLength = 1, .znaky = malloc(1*sizeof(int))};
-            //memset(newNode.znaky, 0, 1*sizeof(int));
             Node newNode = {.count = inputCount[i], .charLength = 1, .znaky =  calloc(1, sizeof(int))};
-            
             newNode.znaky[newNode.charLength-1] = (unsigned char) i;
-            if(inputs == 0) // Pokud je to první node v poli, tak přidáme
-                nodes[inputs] = newNode;
-            else // Jinak provedeme přidání na možná existující pozici a posunutí prvků v poli
-                for(int j = 0; j <= inputs; j++) {
-                    if(j == inputs) { // Nový poslední prvek
-                        nodes[j] = newNode;
-                        continue;
-                    }
-                    int value = nodes[j].count;
-                    if(value > newNode.count) {
-                        //Posunutí nodů
-                        Node temp = nodes[j];
-                        nodes[j] = newNode;
-                        newNode = temp;
-                    }
-                }
+
+            if(inputs == 0) // If it is the first Node in the array
+                nodes[inputs] = newNode;  
+            else // Or we will add it and sort it in ascending order
+                insertSortedNode(nodes, &inputs, newNode);
             inputs++;
         }
     }
@@ -139,46 +133,30 @@ char** createTable(int *inputCount) {
         printf("'%s' : %d\n", node.znaky, node.count);
     }
     
-    // Provedeme huffmanovské sčítání... nové nody vkládáme do nodes pole podle počtu charakterů (mohou být dále použita na sčítání)
+    // Provedeme huffmanovské sčítání... nové nody vkládáme do nodes pole podle počtu charakterů (dále použita na sčítání)
     for(int i = 0; i < inputs-1; i = i + 2) {
         Node first = nodes[i];
         Node second = nodes[i+1];
-        // Nový sečtený node:
-        /*Node newNode = {.count = (first.count + second.count),
-                        .charLength = 0, 
-                        .znaky = malloc((first.charLength + second.charLength)*sizeof(int))};
-        memset(newNode.znaky, 0, (first.charLength + second.charLength)*sizeof(int));*/
+        // New summed node:
         Node newNode = {.count = (first.count + second.count),
                         .charLength = 0, 
                         .znaky = calloc((first.charLength + second.charLength), sizeof(int))};
-        //Vložení znaků
-        for(int m = 0; m < first.charLength; m++){
+        //combining characters:
+        for(int m = 0; m < first.charLength; m++) { // characters from first node
             newNode.znaky[(newNode.charLength++)] = first.znaky[m];
         }
-        for(int m = 0; m < second.charLength; m++) {
+        for(int m = 0; m < second.charLength; m++) { // characters from second node
             newNode.znaky[(newNode.charLength++)] = second.znaky[m];
         }
-        //Cyklus na vkládání newNode do pole podle charLength:
-        for(int j = 0; j <= inputs; j++) {
-            if(j == inputs) {
-                nodes[j] = newNode;
-                continue;
-            }
-            int value = nodes[j].count;
-            if(value >= newNode.count) {
-                //Posunutí nodů
-                Node temp = nodes[j];
-                nodes[j] = newNode;
-                newNode = temp;
-            }
-        }
+        // Adding newNode and sorting it in ascending order
+        insertSortedNode(nodes, &inputs, newNode);
         inputs++;
     }
-    printf("New nodes:\n");
+    /*printf("New nodes:\n");
     for (int i = 0; i < inputs; i++) {
         Node node = nodes[i];
         printf("'%s' : %d : %d\n", node.znaky, node.count, node.charLength);
-    }
+    }*/
 
     // Přiřazení 0 a 1 k prvkům pole
     printf("DEBUG:\n");

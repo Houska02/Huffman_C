@@ -1,12 +1,12 @@
 #include "bitHandler.h"
 
-void initBitWriter(BitWriter *bitWriter, char *outputFileName){
-    bitWriter->file = fopen(outputFileName, "wb"); //Budeme zapisovat binárně
+void initBitWriter(BitWriter *bitWriter, char *outputFileName) {
+    bitWriter->file = fopen(outputFileName, "wb"); // Binary file
     bitWriter->buffer = 0;
     bitWriter->bitCount = 0;
 }
 
-void writeCharCount(BitWriter *bitWriter, int count) { //TODO - předělat na uint8
+void writeCharCount(BitWriter *bitWriter, int count) {
     fwrite(&count, sizeof(int), 1, bitWriter->file);
     char c2 = '|';
     fwrite(&c2, sizeof(char), 1, bitWriter->file);
@@ -15,7 +15,7 @@ void writeCharCount(BitWriter *bitWriter, int count) { //TODO - předělat na ui
 void writeTable(BitWriter *bitWriter, unsigned char character, char *code, int codeLength) {
     char c1 = '-';
     char c2 = '|';
-    // |<uChar>-<code>||<uChar>-<code>| //TODO
+    // |<uChar>-<code>||<uChar>-<code>|
     fwrite(&c2, sizeof(char), 1, bitWriter->file);
     fwrite(&character, sizeof(unsigned char), 1, bitWriter->file);
     fwrite(&c1, sizeof(char), 1, bitWriter->file);
@@ -24,26 +24,24 @@ void writeTable(BitWriter *bitWriter, unsigned char character, char *code, int c
 }
 
 void writeBit(BitWriter *bw, int bit) {
-    bw->buffer <<= 1;  // Shift left to make room
-    bw->buffer |= (bit & 1);  // Add new bit (just in case it's not 0 or 1)
+    bw->buffer <<= 1;  // Shifting bits left
+    bw->buffer |= (bit & 1);  // Setting a bit value
     bw->bitCount++;
 
-    if (bw->bitCount == 8) {
-        fwrite(&bw->buffer, 1, 1, bw->file);  // Write full byte
+    if (bw->bitCount == 8) { // If all 8 bits were modified then save buffer and reset
+        fwrite(&bw->buffer, 1, 1, bw->file);  // Writing buffer into a file
         bw->bitCount = 0;
-        bw->buffer = 0;
+        bw->buffer = 0; // Setting bac to 00000000
     }
 }
 
 void writeBitFromChar(BitWriter *bitWriter, char bit) {
-    if(bit == '1')
-        writeBit(bitWriter, 1);
-    else
-        writeBit(bitWriter, 0);
+    writeBit(bitWriter, (bit=='1' ? 1 : 0));
 }
+
 void flushBits(BitWriter *bitWriter) {
     if (bitWriter->bitCount > 0) {
-        bitWriter->buffer <<= (8 - bitWriter->bitCount);  // Pad with 0s
+        bitWriter->buffer <<= (8 - bitWriter->bitCount);  // Shifting bits left if unless all 8 bits have been modified (the rest is 000...)
         fwrite(&bitWriter->buffer, 1, 1, bitWriter->file);
     }
 }
@@ -64,7 +62,7 @@ void initBitReader(BitReader *br, const char *filename) {
 
 int readTable(BitReader *br, unsigned char *character, char **code) {
     int codeLength = 0;
-    *code = calloc(1, sizeof(char));  // Start with just '\0'
+    *code = calloc(1, sizeof(char));
 
     int state = 0; 
     char ch;
@@ -119,7 +117,6 @@ int readTable(BitReader *br, unsigned char *character, char **code) {
 
     return 0;
 }
-
 
 int readBit(BitReader *br, int *bit) {
     if (br->bitCount == 0) {

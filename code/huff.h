@@ -27,12 +27,12 @@ typedef struct Huffman {
 Huffman* initHuffmanFromText(char *inputText, char *outputFileName);
 // Compression from a .txt file
 Huffman* initHuffmanFromFile(char *inputFile, char *outputFileName);
-//TODO Huffman* initHuffmanFromTable(int *count); // Tabulka četností/pravděpodobnostní tabulka
-
 // Decompression from a .huff file
 Huffman* initHuffmanFromBinary(char *importFileName, char *outputFileName); //Decompression
 
+
 /* COMPRESSION */
+
 void compress(Huffman* self); // Jen vypíše do konzole
 void compressIntoFile(Huffman* self); // Uloží do souboru
 void simpleProcess(Huffman* self); // Jen zakóduje znaky a vypíše jejich hodnoty
@@ -51,8 +51,7 @@ void decompress(Huffman* self);
 
 
 typedef struct {
-    /* Informace o četnosti těchto charakterů v textu
-    */
+    /* Number of times the letter occurs in the text */
     int count;
     /*Odpoví délce charakterů.
     S číslováním se začíná od 1

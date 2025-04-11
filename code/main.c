@@ -23,6 +23,7 @@ Default: slovo
 Default: binární kódování
 */
 
+/* Funkce na získání textu z kozole. */
 char *getInputText() {
     printf("Input a text: ");
 
@@ -52,117 +53,93 @@ char *getInputText() {
     return buffer;
 }
 
-// ./main.exe -?
+/*
+
+    Arguments:
+    -? » Help message
+    -m --msg <inputText>
+    -i --input <inputFileName> » Defines input file. For compression use .txt and for decompression use .huff.
+    -o --output <outputFileName> » Defines output file. For compression use .huff and for decompression use .txt.
+    -c --compress » Compressing text into a file or 
+    -d --decompress » Decompressing a .huff file created by this program
+*/
 int main(int argc, char *argv[]) {
     int opt;
 
     bool compress = true; // true - compressing | false - decompressing
 
-    /* PO SPUŠTĚNÍ:
-    * Chtít po uživatelovi slovo nebo znaky a pravděpodobnosti
-    */
     bool isProbabilities = false; // Defaultní hodnota
     bool isSettingText = false; // Defaultní hodnota
 
     bool importFromFile = false; // Defaultní hodnota
-    //bool saveToFile = false; unused // Defaultní hodnota
+
     char *inputFileName = NULL;
     char *outputFileName = NULL;
-    
-    //bool customOutput = false; unused // Defaultní hodnota
-    //char *customOutputValues = NULL;
-    
-    /*
-        INPUTS
-    */
-   char *inputText = NULL;
-   size_t inputTextSize = 0;
+    char *inputText = NULL;
 
-    /*
-    -i <value> - Definovani vstupniho souboru
-    -o <value> - Definovani vystupniho souboru
-    -m - Bude po uživatelovi potřeba zadat vstupní text
-    Navíc:
-    -p - Budeme zadávat pravděpodobnosti
-    NEBUDE ASI... -h --huff <values> - Do kolika znaků budeme kódovat (01, 012, abc, ... bude záležet na pořadí v jakém se to tam zadá)
-    
-    -c
-    -d
-
-    -? - Help
-    */
     static struct  option long_options[] = {
         {"input", required_argument, 0, 'i'},
         {"output", required_argument, 0, 'o'},
         {"msg", required_argument, 0, 'm'},
-        //{"huff", required_argument, 0, 'h'},
-        {"probabilities", no_argument, 0, 'p'},
+        //{"probabilities", no_argument, 0, 'p'},
         {"compress", no_argument, 0, 'c'},
         {"decompress", no_argument, 0, 'd'},
+        {"help", no_argument, 0, '?'},
         {0, 0, 0, 0}
     };
-    //while ((opt = getopt_long(argc, argv, "i:o:m:h:pcd", long_options, NULL)) != -1) {
-    while ((opt = getopt_long(argc, argv, "i:o:m:pcd", long_options, NULL)) != -1) {
+    while ((opt = getopt_long(argc, argv, "i:o:m:cd?", long_options, NULL)) != -1) {
             switch (opt) {
                 case 'i': // Input file name
                     importFromFile = true;
                     inputFileName = optarg;
-                    printf("Dal jsi -i, %s\n", inputFileName);
                     break;
                 case 'o': // Output file name
                     outputFileName = optarg;
-                    printf("Dal jsi -o, %s\n", outputFileName);
                     break;
                 case 'm': // message
                     isSettingText = true;
                     inputText = optarg;
-                    printf("Dal jsi -m\n");
                     break;
-                // case 'h': // Výstupní kódování (znaky)
-                //     customOutputValues = optarg;
-                //     printf("Dal jsi -h, %s\n", customOutputValues);
-                //     break;
-                case 'p': // Probabilities
+                /*case 'p': // Probabilities
                     printf("Dal jsi -p\n");
                     isProbabilities = true;
-                    break;
+                    break;*/
                 case 'c':
-                    compress = true; // trochu placebo, když true je to i default hodnota xd
+                    compress = true; // trochu placebo, protože true je i default hodnota xd
                     break;
                 case 'd':
                     compress = false;
                     break;
                 case '?':
-                    printf("-f <file_name> -> Define a file name.\n");
-                    printf("-o <value> -> TODO\n");
-                    printf("-p -> Setting probabilities instead of text only\n");
-                    printf("-t -> Only used with -p... You will define probabilities and text\n");
-                    printf("TODO\n"); // TODO
-                break;
-                default:
-                    printf("Bad usage\n");
+                default:                    
+                    printf("Help\n");
+                    printf("  -m --msg <inputText>\n");
+                    printf("  -i --input <inputFileName> -> Defines input file. For compression use .txt and for decompression use .huff.\n");
+                    printf("  -o --output <outputFileName> -> Defines output file. For compression use .huff and for decompression use .txt.\n");
+                    printf("  -c --compress -> Compressing a text\n");
+                    printf("  -d --decompress -> Decompressing a .huff file created by this program\n");
+                    printf("  -> If output file is not specified then output will be in command window. If input file or message is not specified then user will be asked for an additional input after launch.\n");
+                    printf("  -> If action (-c or -d) is not specified then default action is compression.");
+                    return EXIT_SUCCESS;
                 break;
             }
     }
 
-    if(compress) {
-        if(importFromFile && isProbabilities) //Pokud budeme importovat ze souboru, tak nebudeme zadávat vlastní pravděpodobnosti... mohlo by být moc náročné
+    if(compress) { // Komprese
+        if(importFromFile && isProbabilities) //Pokud budeme importovat ze souboru, tak nebudeme zadávat vlastní pravděpodobnosti
             isProbabilities = false;
         if(!isProbabilities && !isSettingText && !importFromFile) // Pokud neimportujeme ze souboru a ani nezádáváme čistě pravděpodobnosti, tak bude text
             isSettingText = true;
         if(importFromFile && isSettingText) // Pokud importujeme ze souboru, tak nebudeme zadávat text ručně
             isSettingText = false;
 
-        if(isSettingText && inputText == NULL) {
+        if(isSettingText && inputText == NULL)
             inputText = getInputText();
-                if(inputText) {
-                inputTextSize = strlen(inputText);
-                printf("Text length: %llu\n", inputTextSize);
-            }
-        }
-        if(isProbabilities) {
+
+        /*if(isProbabilities) { // TODO
             printf("HERE SET PROBABILITIES!");
-        }
+        }*/
+
         Huffman* huff;
         if(importFromFile) {
             huff = initHuffmanFromFile(inputFileName, outputFileName);
@@ -170,7 +147,6 @@ int main(int argc, char *argv[]) {
 
             printf("--- END HUFF FROM A FILE ---\n");
         } else {
-            //Huffman huff = createHuffman();
             huff = initHuffmanFromText(inputText, outputFileName);
             huff->process(huff);
 
@@ -180,17 +156,12 @@ int main(int argc, char *argv[]) {
         if(huff->count)
             free(huff->count);
     }
-    if(!compress) {
+    if(!compress) { // Dekomprese
         Huffman *huff;
         huff = initHuffmanFromBinary(inputFileName, outputFileName);
         huff->process(huff);
         printf("--- END HUFF FROM BINARY (decompression) ---\n");
     }
-    /*HUFFMAN:
-    * Zesortit znaky podle pravděpodobností
-    * Vytvořit skupiny po n-1 znaků a zjistit jak velká bude poslední skupina
-        * Pokud bude poslední ksupina malá, tak budeme sčítat po n znacích
-    * */
 
     if(inputText) // Uvolnění paměti
         free(inputText);
