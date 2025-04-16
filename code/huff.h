@@ -16,6 +16,8 @@ typedef struct Huffman {
     bool fromFile;
     char *inputText;
 
+    int strLen;
+
     char *importFileName;
     char *outputFileName;
 
@@ -45,13 +47,13 @@ void compressIntoFile(Huffman* self); // Uloží do souboru
 void printResults(Huffman* self);
 
 /* Funkce na vytvoření tabulky četností znaků v textu.
-    @return Int array with ASCII_SIZE size
+    @return Int array with ASCII_SIZE size and text length in strLen variable
 */
-int* countCharacters(const char *inputText);
+int* countCharacters(const char *inputText, int *strLen);
 /* Funkce na vytvoření tabulky četností znaků ze souboru .txt.
-    @return Int array with ASCII_SIZE size
+    @return Int array with ASCII_SIZE size and text length in strLen variable
 */
-int* processFile(char *fileName);
+int* processFile(char *fileName, int *strLen);
 
 /* DECOMPRESSION */
 void decompress(Huffman* self);
@@ -71,7 +73,7 @@ typedef struct {
 // Funkce na vytvoření kódovací tabulky z tabulky četností znaků
 char** createTable(int *count);
 // count - Počet znaků z ASCII, které mají nějaký kód
-char** importTable(BitReader *br, int *uniqueCharCount);
+char** importTable(BitReader *br, int *uniqueCharCount, int *strlen);
 
 void saveTo(Huffman *self);
 

@@ -41,6 +41,10 @@ typedef struct BitReader {
 } BitReader;
 
 void initBitReader(BitReader *br, const char *filename);
+/* Funkce na přečtení jak dlouhá je zakódovaná zpráva.
+    @note Může se stát, že přebývají bity na konci, protože se ukládá 8 bitovej char.
+*/
+void readCharCount(BitReader *br, int *strLen);
 /* Funkce na čtení bitů ze souboru.
     @return 1 pokud je co číst. Pokud již není, tak je vrácena 0 a čtení by mělo být zastaveno. 
 */

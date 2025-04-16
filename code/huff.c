@@ -7,8 +7,9 @@ Huffman* initHuffmanFromText(char *inputText, char  *outputFileName) {
 
     huff->inputText = inputText;
     huff->fromFile = false;
-    
-    huff->count = countCharacters(inputText);
+    huff->strLen = 0;
+
+    huff->count = countCharacters(inputText, &(huff->strLen));
     if(outputFileName != NULL) {
         huff->outputFileName = outputFileName;
         huff->process = compressIntoFile;
@@ -23,8 +24,9 @@ Huffman* initHuffmanFromFile(char *inputFile, char  *outputFileName) {
 
     huff->fromFile = true;
     huff->importFileName = inputFile;
+    huff->strLen = 0;
 
-    huff->count = processFile(inputFile);
+    huff->count = processFile(inputFile, &(huff->strLen));
     if(outputFileName != NULL) {
         huff->outputFileName = outputFileName;
         huff->process = compressIntoFile;
@@ -68,12 +70,12 @@ void decompress(Huffman* self) {
     initBitReader(&br, self->importFileName);
 
     int uniqueCharCount = 0; // Počet importovaných znaků z tabulky, které mají nějaký kód
-    self->table = importTable(&br, &uniqueCharCount);
-    printf("Imported from %s\n", self->importFileName);
+    self->table = importTable(&br, &uniqueCharCount, &(self->strLen));
 
     decode(self, &br, uniqueCharCount);
 
     closeBitReader(&br);
+    printf("... imported from %s ... saved to %s\n", self->importFileName, self->outputFileName);
     
     for(int i = 0; i < ASCII_SIZE; i++)
         free(self->table[i]);
@@ -215,7 +217,7 @@ void printResults(Huffman *self) {
     printf("\n");
 }
 
-int* countCharacters(const char *inputText) {
+int* countCharacters(const char *inputText, int *strLen) {
     int *count = malloc(ASCII_SIZE*sizeof(int));
     if(!count) {
         return NULL; //Alokace se nezdařila
@@ -224,11 +226,12 @@ int* countCharacters(const char *inputText) {
 
     for(int i = 0; inputText[i] != '\0'; i++) {
         count[(unsigned char)inputText[i]]++;
+        (*strLen)++;
     }
     return count;
 }
 
-int* processFile(char *fileName) {
+int* processFile(char *fileName, int *strLen) {
     FILE *file = fopen(fileName, "r"); // Opening file, read-only
     if (file == NULL) {
         perror("Error opening file");
@@ -246,6 +249,7 @@ int* processFile(char *fileName) {
     char ch;
     while ((ch = fgetc(file)) != EOF) { //charakter po charakteru
         count[(unsigned char)ch]++;
+        (*strLen)++;
     }
     fclose(file);
     return count;
@@ -261,7 +265,8 @@ void saveTo(Huffman *self) {
             printf("Error opening file");
             return;
         }
-        // Zapíšeme kódovací tabulku
+        // Zapíšeme kódovací tabulku + počet znaků
+        writeCharCount(&bw, self->strLen);
         for(int i = 0; i < ASCII_SIZE; i++) {
             if(self->count[(unsigned char)i] > 0) {
                 writeTable(&bw, (unsigned char)i, self->table[i], strlen(self->table[i]));
@@ -279,7 +284,8 @@ void saveTo(Huffman *self) {
         }
         fclose(file);
     } else {
-        // Zapíšeme kódovací tabulku
+        // Zapíšeme kódovací tabulku + počet znaků
+        writeCharCount(&bw, self->strLen);
         for(int i = 0; i < ASCII_SIZE; i++) {
             if(self->count[(unsigned char)i] > 0) {
                 writeTable(&bw, (unsigned char)i, self->table[i], strlen(self->table[i]));
@@ -298,7 +304,9 @@ void saveTo(Huffman *self) {
     printf("... saved into %s", self->outputFileName);
 }
 
-char** importTable(BitReader *br, int *uniqueCharCount) {
+char** importTable(BitReader *br, int *uniqueCharCount, int *strlen) {
+    readCharCount(br, strlen);
+    // Table:
     char **importedTable; // [ASCII][kód]
     importedTable = (char**)calloc(ASCII_SIZE, sizeof(char*));
 
@@ -319,9 +327,11 @@ void decode(Huffman *self, BitReader *br, int uniqueCharCount) {
     char *match = calloc(uniqueCharCount, sizeof(char)); // Pole charakterů, se kterými se kód zatím shoduje při čtení
     int matchCount = 0;
 
+    int decodedCharLen = 0;
+
     int bit;
     int readingBit= 0;
-    while (readBit(br, &bit)) { //Reading next bit in queue
+    while (readBit(br, &bit) && decodedCharLen < self->strLen) { //Reading next bit in queue
         if(readingBit == 0) { // Looping through ASCII self.table array if we are matching first bit
             for(int i = 0; i < ASCII_SIZE ; i++) {
                 if(self->table[(unsigned char)i] == NULL)
@@ -352,6 +362,7 @@ void decode(Huffman *self, BitReader *br, int uniqueCharCount) {
 
             matchCount = 0; //Reset counteru, aby jsem začali opět od začátku
             readingBit = 0;
+            decodedCharLen++;
         }
     }
     free(match);

@@ -8,8 +8,8 @@ void initBitWriter(BitWriter *bitWriter, char *outputFileName) {
 
 void writeCharCount(BitWriter *bitWriter, int count) {
     fwrite(&count, sizeof(int), 1, bitWriter->file);
-    char c2 = '|';
-    fwrite(&c2, sizeof(char), 1, bitWriter->file);
+    //char c2 = '|';
+    //fwrite(&c2, sizeof(char), 1, bitWriter->file);
 }
 
 void writeTable(BitWriter *bitWriter, unsigned char character, char *code, int codeLength) {
@@ -58,6 +58,9 @@ void initBitReader(BitReader *br, const char *filename) {
     br->file = fopen(filename, "rb");
     br->buffer = 0;
     br->bitCount = 0;
+}
+void readCharCount(BitReader *br, int *strLen) {
+    fread(strLen, sizeof(int), 1, br->file);
 }
 
 int readTable(BitReader *br, unsigned char *character, char **code) {
