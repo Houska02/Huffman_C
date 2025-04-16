@@ -75,7 +75,11 @@ void decompress(Huffman* self) {
     decode(self, &br, uniqueCharCount);
 
     closeBitReader(&br);
-    printf("... imported from %s ... saved to %s\n", self->importFileName, self->outputFileName);
+
+    if(self->outputFileName == NULL) // Bez funkce, jen info do konzole:
+        printf("... imported from %s \n", self->importFileName);
+    else
+        printf("... imported from %s ... saved to %s\n", self->importFileName, self->outputFileName);
     
     for(int i = 0; i < ASCII_SIZE; i++)
         free(self->table[i]);
@@ -357,8 +361,10 @@ void decode(Huffman *self, BitReader *br, int uniqueCharCount) {
         }
         // Pokud je v match poli jen jeden prvek, tak máme shodu
         if(matchCount == 1) {
-            printf("%c", match[matchCount-1]);
-            fwrite(&match[matchCount-1], sizeof(char), 1, file);
+            if(self->outputFileName == NULL)
+                printf("%c", match[matchCount-1]);
+            else
+                fwrite(&match[matchCount-1], sizeof(char), 1, file);
 
             matchCount = 0; //Reset counteru, aby jsem začali opět od začátku
             readingBit = 0;
@@ -367,7 +373,9 @@ void decode(Huffman *self, BitReader *br, int uniqueCharCount) {
     }
     free(match);
     
-    printf("\n");
-    fclose(file);
+    if(self->outputFileName == NULL)
+        printf("\n");
+    else
+        fclose(file);
 }
 
