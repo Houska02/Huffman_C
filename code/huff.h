@@ -15,6 +15,7 @@ typedef struct Huffman {
 
     bool fromFile;
     char *inputText;
+    bool customFrequencies; // Zda bzlz ručně upraveny četnosti znaků
 
     int strLen;
 
@@ -32,6 +33,10 @@ typedef struct Huffman {
 Huffman* initHuffmanFromText(char *inputText, char *outputFileName);
 // Compression from a .txt file
 Huffman* initHuffmanFromFile(char *inputFile, char *outputFileName);
+
+// Init when creating a huffman code for symbols. Need to specify symbol - count
+Huffman* initHuffmanFromTable(int *count);
+
 // Decompression from a .huff file
 Huffman* initHuffmanFromBinary(char *importFileName, char *outputFileName); //Decompression
 
@@ -55,6 +60,8 @@ int* countCharacters(const char *inputText, int *strLen);
 */
 int* processFile(char *fileName, int *strLen);
 
+void modifyCountTable(Huffman* self);
+
 /* DECOMPRESSION */
 void decompress(Huffman* self);
 
@@ -72,9 +79,12 @@ typedef struct {
 
 // Funkce na vytvoření kódovací tabulky z tabulky četností znaků
 char** createTable(int *count);
-// count - Počet znaků z ASCII, které mají nějaký kód
-char** importTable(BitReader *br, int *uniqueCharCount, int *strlen);
-
+/* Function that will import saved huffman table from a file.
+    uniqueCharCount - Returns value of unique characters in table (basically number of rows in saved table)
+    strLen - Returns a length of saved text
+    Returns Array with size of ASCII characters and values that represents binary codes of key character
+*/
+char** importTable(BitReader *br, int *uniqueCharCount, int *strLen);
 void saveTo(Huffman *self);
 
 /* Function taht will decode text from .huff file.

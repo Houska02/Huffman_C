@@ -7,6 +7,7 @@ Huffman* initHuffmanFromText(char *inputText, char  *outputFileName) {
 
     huff->inputText = inputText;
     huff->fromFile = false;
+    huff->customFrequencies = false;
     huff->strLen = 0;
 
     huff->count = countCharacters(inputText, &(huff->strLen));
@@ -23,6 +24,7 @@ Huffman* initHuffmanFromFile(char *inputFile, char  *outputFileName) {
     Huffman *huff = (Huffman*)malloc(sizeof(Huffman));
 
     huff->fromFile = true;
+    huff->customFrequencies = false;
     huff->importFileName = inputFile;
     huff->strLen = 0;
 
@@ -40,6 +42,7 @@ Huffman* initHuffmanFromBinary(char *importFileName, char *outputFileName) {
     Huffman *huff = (Huffman*)malloc(sizeof(Huffman));
 
     huff->fromFile = true;
+    huff->customFrequencies = false;
     huff->importFileName = importFileName;
     huff->outputFileName = outputFileName;
 
@@ -85,7 +88,6 @@ void decompress(Huffman* self) {
         free(self->table[i]);
     free(self->table);
 }
-
 
 /* Help function for inserting newNode into a nodes array.
     Array is autoamtically sorted with this function in ascending order.
@@ -198,7 +200,7 @@ char** createTable(int *inputCount) {
 }
 
 void printResults(Huffman *self) {
-    printf("Compressed text: \n");
+    printf("\nCompressed text: \n");
 
     if(self->fromFile == true) {
         FILE *file = fopen(self->importFileName, "r");
@@ -217,6 +219,15 @@ void printResults(Huffman *self) {
     for(int i = 0; i< strlen(self->inputText); i++) {
         char c = self->inputText[i];
         printf("%s", self->table[(unsigned char)c]);
+    }
+    printf("\n\n");
+
+    // Zobrazení kódu pro jednotlivé znaky:
+    printf("Character | Frequency | Code\n");
+    for(int i = 0; i < ASCII_SIZE; i++) {
+        if(self->count[i] > 0) {
+            printf("%c | %d | %s\n", (unsigned int) i, self->count[i], self->table[(unsigned int) i]);
+        }
     }
     printf("\n");
 }
@@ -257,6 +268,29 @@ int* processFile(char *fileName, int *strLen) {
     }
     fclose(file);
     return count;
+}
+
+void modifyCountTable(Huffman* self) {
+    
+    for(int i = 0; i < ASCII_SIZE; i++) {
+        if(self->count[i] > 0) {
+            printf("Frequency of character '%c' is '%d', write new value: ", (unsigned char)i, self->count[i]);
+            int x = self->count[i];
+            
+            while(1) {
+                if (scanf("%d", &x) == 1) {
+                    self->count[i] = x;
+                    break;
+                } else {
+                    // Clear the buffer:
+                    int ch;
+                    while ((ch = getchar()) != '\n' && ch != EOF);  // discard until newline
+                    printf("That is not a number! Try that again: ");
+                }
+            }
+
+        }
+    }
 }
 
 void saveTo(Huffman *self) {
@@ -308,8 +342,8 @@ void saveTo(Huffman *self) {
     printf("... saved into %s", self->outputFileName);
 }
 
-char** importTable(BitReader *br, int *uniqueCharCount, int *strlen) {
-    readCharCount(br, strlen);
+char** importTable(BitReader *br, int *uniqueCharCount, int *strLen) {
+    readCharCount(br, strLen);
     // Table:
     char **importedTable; // [ASCII][kód]
     importedTable = (char**)calloc(ASCII_SIZE, sizeof(char*));

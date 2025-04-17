@@ -81,13 +81,13 @@ int main(int argc, char *argv[]) {
         {"input", required_argument, 0, 'i'},
         {"output", required_argument, 0, 'o'},
         {"msg", required_argument, 0, 'm'},
-        //{"probabilities", no_argument, 0, 'p'},
+        {"probabilities", no_argument, 0, 'p'},
         {"compress", no_argument, 0, 'c'},
         {"decompress", no_argument, 0, 'd'},
         {"help", no_argument, 0, '?'},
         {0, 0, 0, 0}
     };
-    while ((opt = getopt_long(argc, argv, "i:o:m:cd?", long_options, NULL)) != -1) {
+    while ((opt = getopt_long(argc, argv, "i:o:m:cdp?", long_options, NULL)) != -1) {
             switch (opt) {
                 case 'i': // Input file name
                     importFromFile = true;
@@ -100,10 +100,9 @@ int main(int argc, char *argv[]) {
                     isSettingText = true;
                     inputText = optarg;
                     break;
-                /*case 'p': // Probabilities
-                    printf("Dal jsi -p\n");
+                case 'p': // Probabilities
                     isProbabilities = true;
-                    break;*/
+                    break;
                 case 'c':
                     compress = true; // trochu placebo, protože true je i default hodnota xd
                     break;
@@ -136,25 +135,20 @@ int main(int argc, char *argv[]) {
         if(isSettingText && inputText == NULL)
             inputText = getInputText();
 
-        /*if(isProbabilities) { // TODO
-            printf("HERE SET PROBABILITIES!");
-        }*/
-
         Huffman* huff;
-        if(importFromFile) {
+        if(importFromFile)
             huff = initHuffmanFromFile(inputFileName, outputFileName);
-            huff->process(huff);
-
-            printf("--- END HUFF FROM A FILE ---\n");
-        } else {
+        else
             huff = initHuffmanFromText(inputText, outputFileName);
-            huff->process(huff);
 
-            printf("--- END HUFF FROM A TEXT ---\n");
-        }
+        if(isProbabilities)
+            modifyCountTable(huff);
 
+        huff->process(huff);
         if(huff->count)
             free(huff->count);
+
+        printf("--- END HUFF FROM A FILE OR TEXT ---\n");
     }
     if(!compress) { // Dekomprese
         Huffman *huff;
