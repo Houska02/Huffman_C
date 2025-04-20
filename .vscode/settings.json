@@ -1,5 +1,7 @@
 {
     "files.associations": {
-        "bithandler.h": "c"
+        "bithandler.h": "c",
+        "huff.h": "c",
+        "getopt.h": "c"
     }
 }

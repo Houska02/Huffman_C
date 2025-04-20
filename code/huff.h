@@ -12,17 +12,16 @@
 #define CODE_SIZE 20
 
 typedef struct Huffman {
-
     bool fromFile;
     char *inputText;
-    bool customFrequencies; // Zda bzlz ručně upraveny četnosti znaků
+    bool customFrequencies; // Zda byly ručně upraveny četnosti znaků
 
-    int strLen;
+    int strLen; // Dělka textu (ukládá se a poté se používá při dekomrpesi na kontrolu zda je program už nakonci)
 
     char *importFileName;
     char *outputFileName;
 
-    int *count; //Tabulka četností/pravděpodobností
+    int *count; //Tabulka četností znaků v textu
     char **table; //ASCII charaktery | kód
     
     void (*process)(struct Huffman*);
@@ -33,10 +32,6 @@ typedef struct Huffman {
 Huffman* initHuffmanFromText(char *inputText, char *outputFileName);
 // Compression from a .txt file
 Huffman* initHuffmanFromFile(char *inputFile, char *outputFileName);
-
-// Init when creating a huffman code for symbols. Need to specify symbol - count
-Huffman* initHuffmanFromTable(int *count);
-
 // Decompression from a .huff file
 Huffman* initHuffmanFromBinary(char *importFileName, char *outputFileName); //Decompression
 
@@ -46,7 +41,7 @@ Huffman* initHuffmanFromBinary(char *importFileName, char *outputFileName); //De
 // Function that will compress a text and results will be in command window
 void compress(Huffman* self);
 // Function that will compress a text and results will be saved into a file
-void compressIntoFile(Huffman* self); // Uloží do souboru
+void compressIntoFile(Huffman* self);
 
 // Simple print of input text, char-code and compressed text into a command window
 void printResults(Huffman* self);

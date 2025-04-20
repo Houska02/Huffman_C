@@ -1,27 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-
-#include <getopt.h>
 #include <string.h>
 
+#include <getopt.h> // Knihovna na zpracování input argumentů při spouštění programu
+
 #include "huff.h"
-
-/*
-* Zadat text nebo možnost zadat znaky a pravděpodobnosti
-* Zesortovat znaky od největšího po nejmenší podle pravděpodobností (nebo opačně, záleží na dalším použití)
-* Provést obecného Huffmana (takže mít možnost zadat výstupní znaky (0, 1 .... nebo 0, 1, 2... a, b....))
-    * Na zadaných výstupních znacích bude záležet jak budu postupovat Huffmanem (kolik budu sčítat)
-
-*/
-
-/* SPOUŠTĚNÍ:
-* Definování jestli budeme zadávat slovo nebo pravděpodobnosti znaků
-* Definovat kolik bude výstupních znaků (0, 1 .... nebo 0, 1, 2... a, b....)
-
-Default: slovo
-Default: binární kódování
-*/
 
 /* Funkce na získání textu z kozole. */
 char *getInputText() {
@@ -53,7 +37,13 @@ char *getInputText() {
     return buffer;
 }
 
-/*
+/* Program na vytvoření Huffmanova kódování z input textu. Také umožňuje zpětnou dekompresi .huff souboru.
+    Možnosti:
+    • Vytvoření huffmanova kódování pro zadaný text
+    • Vytvoření huffmanova kódování z .txt souboru
+    • Komprese textu do .huff souboru
+    • Vypsání výsledku do konzole (pokud neukládáme do souboru)
+    • Změna četnosti znaků (tip: pokud se ve zprávě definuje znak pouze jednou, tak se potom může změnit četnost a výsledkem bude kód pro každý charakter s custom četností)
 
     Arguments:
     -? » Help message
@@ -62,6 +52,7 @@ char *getInputText() {
     -o --output <outputFileName> » Defines output file. For compression use .huff and for decompression use .txt.
     -c --compress » Compressing text into a file or 
     -d --decompress » Decompressing a .huff file created by this program
+    -p --probabilities » Set custom probability for each character in a mesasge
 */
 int main(int argc, char *argv[]) {
     int opt;
@@ -77,7 +68,7 @@ int main(int argc, char *argv[]) {
     char *outputFileName = NULL;
     char *inputText = NULL;
 
-    static struct  option long_options[] = {
+    static struct option long_options[] = {
         {"input", required_argument, 0, 'i'},
         {"output", required_argument, 0, 'o'},
         {"msg", required_argument, 0, 'm'},
@@ -117,9 +108,11 @@ int main(int argc, char *argv[]) {
                     printf("  -o --output <outputFileName> -> Defines output file. For compression use .huff and for decompression use .txt.\n");
                     printf("  -c --compress -> Compressing a text\n");
                     printf("  -d --decompress -> Decompressing a .huff file created by this program\n");
+                    printf("  -p --probabilities -> User will be able to define a custom probablities (frequencies because of ints... :D) for each character. (does not work when importing from a .txt file)\n");
                     printf("  -> If output file is not specified then output will be in command window. If input file or message is not specified then user will be asked for an additional input after launch.\n");
                     printf("  -> If action (-c or -d) is not specified then default action is compression.");
-                    return EXIT_SUCCESS;
+                    printf("  -> PRO TIP: You can use -m to set unique characters and then -p to define custom frequencies for each one of them. For example: -m ABCDEFG -p.");
+                    return EXIT_FAILURE;
                 break;
             }
     }
@@ -127,12 +120,11 @@ int main(int argc, char *argv[]) {
     if(compress) { // Komprese
         if(importFromFile && isProbabilities) //Pokud budeme importovat ze souboru, tak nebudeme zadávat vlastní pravděpodobnosti
             isProbabilities = false;
-        if(!isProbabilities && !isSettingText && !importFromFile) // Pokud neimportujeme ze souboru a ani nezádáváme čistě pravděpodobnosti, tak bude text
+        if(!isSettingText && !importFromFile) // Pokud neimportujeme ze souboru tak bude text
             isSettingText = true;
         if(importFromFile && isSettingText) // Pokud importujeme ze souboru, tak nebudeme zadávat text ručně
             isSettingText = false;
-
-        if(isSettingText && inputText == NULL)
+        if(isSettingText && inputText == NULL) // Pokud již nebyl text zadán
             inputText = getInputText();
 
         Huffman* huff;
@@ -147,17 +139,26 @@ int main(int argc, char *argv[]) {
         huff->process(huff);
         if(huff->count)
             free(huff->count);
-
-        printf("--- END HUFF FROM A FILE OR TEXT ---\n");
+        free(huff);
+        // TODO - free
     }
     if(!compress) { // Dekomprese
+        if(!inputFileName){
+            printf("You need to specifi input .huff file.\n");
+            return EXIT_FAILURE;
+        }
         Huffman *huff;
         huff = initHuffmanFromBinary(inputFileName, outputFileName);
         huff->process(huff);
-        printf("--- END HUFF FROM BINARY (decompression) ---\n");
+        // TODO - free
+        free(huff);
     }
 
     if(inputText) // Uvolnění paměti
         free(inputText);
+    if(inputFileName)
+        free(inputFileName);
+    if(outputFileName)
+        free(outputFileName);
     return EXIT_SUCCESS;
 }

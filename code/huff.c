@@ -60,6 +60,7 @@ void compress(Huffman* self) {
         free(self->table[i]);
     free(self->table);
 }
+
 void compressIntoFile(Huffman* self) {
     self->table = createTable(self->count); // Creating a coding table
     saveTo(self);
@@ -68,15 +69,14 @@ void compressIntoFile(Huffman* self) {
         free(self->table[i]);
     free(self->table);
 }
+
 void decompress(Huffman* self) {
     BitReader br;
     initBitReader(&br, self->importFileName);
 
     int uniqueCharCount = 0; // Počet importovaných znaků z tabulky, které mají nějaký kód
     self->table = importTable(&br, &uniqueCharCount, &(self->strLen));
-
     decode(self, &br, uniqueCharCount);
-
     closeBitReader(&br);
 
     if(self->outputFileName == NULL) // Bez funkce, jen info do konzole:
@@ -200,7 +200,7 @@ char** createTable(int *inputCount) {
 }
 
 void printResults(Huffman *self) {
-    printf("\nCompressed text: \n");
+    printf("Compressed text: \n");
 
     if(self->fromFile == true) {
         FILE *file = fopen(self->importFileName, "r");
@@ -380,7 +380,7 @@ void decode(Huffman *self, BitReader *br, int uniqueCharCount) {
                 }
             }
             readingBit++;
-        } else {
+        } else { // Only looking throu previous matches
             for(int i = 0; i < matchCount; i++) {
                 if(self->table[(unsigned char)match[i]][readingBit] != (bit==1?'1':'0')) {
                     // Odstraníme nechtěný prvek a posuneme seznam
@@ -400,7 +400,7 @@ void decode(Huffman *self, BitReader *br, int uniqueCharCount) {
             else
                 fwrite(&match[matchCount-1], sizeof(char), 1, file);
 
-            matchCount = 0; //Reset counteru, aby jsem začali opět od začátku
+            matchCount = 0; //Reset counteru, aby se začalo opět od začátku
             readingBit = 0;
             decodedCharLen++;
         }

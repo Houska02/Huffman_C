@@ -8,8 +8,6 @@ void initBitWriter(BitWriter *bitWriter, char *outputFileName) {
 
 void writeCharCount(BitWriter *bitWriter, int count) {
     fwrite(&count, sizeof(int), 1, bitWriter->file);
-    //char c2 = '|';
-    //fwrite(&c2, sizeof(char), 1, bitWriter->file);
 }
 
 void writeTable(BitWriter *bitWriter, unsigned char character, char *code, int codeLength) {
@@ -31,7 +29,7 @@ void writeBit(BitWriter *bw, int bit) {
     if (bw->bitCount == 8) { // If all 8 bits were modified then save buffer and reset
         fwrite(&bw->buffer, 1, 1, bw->file);  // Writing buffer into a file
         bw->bitCount = 0;
-        bw->buffer = 0; // Setting bac to 00000000
+        bw->buffer = 0; // Setting back to 00000000
     }
 }
 
@@ -76,7 +74,7 @@ int readTable(BitReader *br, unsigned char *character, char **code) {
                 if (ch == '|') {
                     state = 2;
                 } else {
-                    ungetc(ch, br->file);
+                    ungetc(ch, br->file); // Shifting one place back (because we are now reading bits)
                     return 0;
                 }
                 break;
